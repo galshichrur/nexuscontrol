@@ -2,8 +2,8 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Iterable
 from typing import Self
-from components import Field, BaseStatement
-from table import Table, RawItem, Item
+from db.components import Field, BaseStatement
+from db.table import Table, RawItem, Item
 
 
 class Query[D: RawItem, P: RawItem | Iterable[RawItem]](ABC):

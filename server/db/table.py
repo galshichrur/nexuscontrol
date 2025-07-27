@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import ClassVar, Iterable
-from components import DataType, Field
+from db.components import DataType, Field
 
 type RawItem = tuple[DataType, ...]
 type Item = dict[str | Field, DataType]

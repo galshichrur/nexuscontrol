@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from conversion import sql
+from db.conversion import sql
 from abc import ABC, abstractmethod
 from typing import ClassVar
 

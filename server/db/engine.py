@@ -1,7 +1,6 @@
-import dataclasses
 import sqlite3
 from typing import Iterable, Self
-from query import Query, Insert
+from db.query import Query, Insert
 from dataclasses import dataclass
 
 @dataclass
