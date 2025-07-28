@@ -17,20 +17,29 @@ def get_uuid(s: socket.socket) -> str:
 
     if os.path.exists(AGENT_ID_FILENAME):
         with open(AGENT_ID_FILENAME, "r") as f:
-            return f.read().strip()
-    else:
-        uid = first_time_connect(s)
-        with open(AGENT_ID_FILENAME, "w") as f:
-            f.write(uid)
-        return uid
+            data = f.read().strip()
+            if data:
+                return data
+            else:
+                return write_to_file(s)
+
+    return write_to_file(s)
+
+def write_to_file(s: socket.socket) -> str:
+    uid = first_time_connect(s)
+    with open(AGENT_ID_FILENAME, "w") as f:
+        f.write(uid)
+    print(uid)
+    return uid
 
 def first_time_connect(s: socket.socket) -> str:
+    data: str = json.dumps(connection_details)
 
     # Send connection details to server
-    s.send(json.dumps(connection_details).encode().strip())
+    s.send(data.encode())
 
     # Receive assigned agent_id
-    return s.recv(BUFFER_SIZE).decode().strip()
+    return s.recv(BUFFER_SIZE).decode()
 
 def ping(agent_id: str, s: socket.socket) -> None:
 
@@ -42,6 +51,7 @@ def ping(agent_id: str, s: socket.socket) -> None:
         data["agent_id"] = agent_id
 
         s.send(json.dumps(data).encode().strip())
+        print(f"Sent ping {data}")
 
 def main() -> None:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
