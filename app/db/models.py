@@ -2,13 +2,22 @@ from db.components import Field
 from db.table import Table
 
 # Connections table
+
+# Fields set by server.
 agent_id = Field("agent_id", str, primary=True, unique=True)  # Agent unique UUID4
 connection_time = Field("connection_time", str)  # A timestamp of when the agent connected.
 disconnect_time = Field("disconnect_time", str)  # A timestamp of when the agent disconnected.
 status = Field("status", bool)
-
-hostname = Field("hostname", str)
-ip_address = Field("ip_address", str)
 port = Field("port", str)
+
+# Data passed by agent upon the first connection.
+hostname = Field("hostname", str)
+cwd = Field("cwd", str)
+os_name = Field("os_name", int)
+local_ip = Field("local_ip", str)
+public_ip = Field("public_ip", str)
+mac_address = Field("mac_address", str)
+is_admin = Field("is_admin", bool)
+username = Field("username", str)
 
 agents_table = Table("agents", (agent_id, connection_time, disconnect_time, status, hostname, ip_address, port))
