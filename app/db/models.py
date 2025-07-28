@@ -2,7 +2,7 @@ from db.components import Field
 from db.table import Table
 
 # Connections table
-agent_id = Field("agent_id", int, primary=True, unique=True)
+agent_id = Field("agent_id", str, primary=True, unique=True)  # Agent unique UUID4
 connection_time = Field("connection_time", str)  # A timestamp of when the agent connected.
 disconnect_time = Field("disconnect_time", str)  # A timestamp of when the agent disconnected.
 status = Field("status", bool)

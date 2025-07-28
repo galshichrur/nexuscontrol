@@ -2,6 +2,7 @@ import socket
 import threading
 import json
 import time
+import uuid
 from db.engine import Engine
 from db.models import agents_table, agent_id
 from db.query import Insert, Select, Update
@@ -88,10 +89,8 @@ class Server:
 
         conn_agent_id = connection_details.get("agent_id")
         if not conn_agent_id:
-            # Set available agent ID
-            select_max = Select(agents_table).all()
-            result = list(self.db_engine.execute(select_max))
-            conn_agent_id = max([row["agent_id"] for row in result], default=0) + 1
+            # Set new UUID
+            conn_agent_id = str(uuid.uuid4())
 
         data = {
             "agent_id": conn_agent_id,
@@ -128,4 +127,4 @@ class Server:
         print(f"New agent connected successfully at {address[0]}:{address[1]}.\n Assigned agent ID: {conn_agent_id}.")
 
         # Send back the assigned agent_id
-        client_socket.send(json.dumps({"agent_id": agent_id}).encode())
+        client_socket.send(json.dumps(conn_agent_id).encode())
