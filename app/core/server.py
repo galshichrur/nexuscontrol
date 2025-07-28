@@ -3,14 +3,16 @@ import threading
 import json
 import time
 import uuid
+import os
+from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id
 from db.query import Insert, Select, Update
 
 
 class Server:
-    def __init__(self, db_engine: Engine, buffer_size: int = 1024) -> None:
-        self.db_engine: Engine = db_engine
+    def __init__(self, db_engine_class: Type[Engine], buffer_size: int = 1024) -> None:
+        self.db_engine_class: Type[Engine] = db_engine_class
         self.buffer_size: int = buffer_size
         self.socket: socket = None
         self.is_running: bool = False
@@ -20,7 +22,7 @@ class Server:
         self.timeout_secs: int = 160
         self.check_offline_agents_time_secs: int = 60
 
-    def start(self, host: str = "0.0.0.0", port: int = 8001) -> None:
+    def start(self, host: str = "0.0.0.0", port: int = 8080) -> None:
         """Binds the server to the given address, and listens for new connections."""
 
         if self.is_running:
@@ -39,7 +41,7 @@ class Server:
         print(f"Server successfully started on {host}:{port}.")
 
         # Accept new connection in separate thread
-        self.server_thread = threading.Thread(target=self.accept_new_connections())
+        self.server_thread = threading.Thread(target=self.accept_new_connections)
         self.server_thread.daemon = True
         self.server_thread.start()
 
@@ -61,12 +63,11 @@ class Server:
         print("Server stopped.")
 
     def accept_new_connections(self) -> None:
+
         while self.is_running:
             try:
-                print("Waiting for new connections...")
-
                 client_socket, address = self.socket.accept()
-                print(f"New connection from f{address[0]}:{address[1]}.")
+                print(f"New connection from {address[0]}:{address[1]}.")
 
                 # Handle new connection in a separate thread
                 thread = threading.Thread(
@@ -84,47 +85,64 @@ class Server:
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
         """Handles a new connection."""
 
-        connection_details_json: str = client_socket.recv(self.buffer_size).decode().strip()
-        connection_details: dict = json.loads(connection_details_json)
+        print(f"Stated handling new connection: {address[0]}:{address[1]}.")
+        db_engine_thread = self.db_engine_class()
+        db_engine_thread.open(os.getenv("DB_PATH"))
 
-        conn_agent_id = connection_details.get("agent_id")
-        if not conn_agent_id:
-            # Set new UUID
-            conn_agent_id = str(uuid.uuid4())
+        try:
+            connection_details_json: str = client_socket.recv(self.buffer_size).decode()
+            connection_details: dict = json.loads(connection_details_json)
 
-        data = {
-            "agent_id": conn_agent_id,
-            "connection_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            "disconnect_time": None,
-            "status": True,
-            "hostname": connection_details.get("hostname", "unknown"),
-            "ip_address": address[0],
-            "port": str(address[1]),
-        }
+            conn_agent_id = connection_details.get("agent_id")
+            if not conn_agent_id:
+                # Set new UUID
+                conn_agent_id = str(uuid.uuid4())
 
-        # Check if agent exists in the database
-        select = Select(agents_table).all().where((agent_id == conn_agent_id))
-        exists = list(self.db_engine.execute(select))
-
-        if exists:
-            # Update existing agent
-            update = Update(agents_table).set({
-                "connection_time": data["connection_time"],
+            data = {
+                "agent_id": conn_agent_id,
+                "connection_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 "status": True,
-                "hostname": data["hostname"],
-                "ip_address": data["ip_address"],
-                "port": data["port"],
-                "disconnect_time": None
-            }).where(agent_id == agent_id)
-            self.db_engine.execute(update)
-        else:
-            # Insert new agent
-            insert = Insert(agents_table).values([data])
-            self.db_engine.execute(insert)
+                "port": str(address[1]),
 
-        self.db_engine.commit()
+                "hostname": connection_details.get("hostname", "unknown"),
+                "cwd": connection_details.get("cwd", "unknown"),
+                "os_name": connection_details.get("os_name", "unknown"),
+                "local_ip": connection_details.get("local_ip", "unknown"),
+                "public_ip": connection_details.get("public_ip", "unknown"),
+                "mac_address": connection_details.get("mac_address", "unknown"),
+                "is_admin": connection_details.get("is_admin", "unknown"),
+                "username": connection_details.get("username", "unknown")
+            }
 
-        print(f"New agent connected successfully at {address[0]}:{address[1]}.\n Assigned agent ID: {conn_agent_id}.")
+            # Check if agent exists in the database
+            select = Select(agents_table).where((agent_id == conn_agent_id))
+            exists = list(db_engine_thread.execute(select))
 
-        # Send back the assigned agent_id
-        client_socket.send(json.dumps(conn_agent_id).encode())
+            if exists:
+                print("Agent already exists, updating connection.")
+                # Update existing agent
+                update = Update(agents_table).set({
+                    "connection_time": data["connection_time"],
+                    "status": True,
+                    "hostname": data["hostname"],
+                    "ip_address": data["ip_address"],
+                    "port": data["port"]
+                }).where(agent_id == agent_id)
+                db_engine_thread.execute(update)
+            else:
+                print("Agent not found, creating new one.")
+                # Insert new agent
+                insert = Insert(agents_table).values([data])
+                db_engine_thread.execute(insert)
+
+            db_engine_thread.commit()
+
+            print(f"New agent connected successfully at {address[0]}:{address[1]}.\n Assigned agent ID: {conn_agent_id}.")
+
+            # Send back the assigned agent_id
+            client_socket.send(json.dumps(conn_agent_id).encode())
+        except Exception as e:
+            print(f"Error handling client {address[0]}:{address[1]}: {e}")
+        finally:
+            db_engine_thread.close()
+            client_socket.close()
