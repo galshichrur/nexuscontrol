@@ -1,10 +1,15 @@
 import socket
 import threading
+import json
+from db.engine import Engine
+from db.models import agents_table
+from db.query import Insert
 
 
 class Server:
-    def __init__(self) -> None:
-
+    def __init__(self, db_engine: Engine, buffer_size: int = 1024) -> None:
+        self.db_engine: Engine = db_engine
+        self.buffer_size: int = buffer_size
         self.socket: socket = None
         self.connected_clients = {}
         self.is_running: bool = False
@@ -13,7 +18,7 @@ class Server:
         self.new_connection_time: int = 1
         self.server_thread: threading.Thread | None = None
 
-    def start(self, host: str = "0.0.0.0", port: int = "8000") -> None:
+    def start(self, host: str = "0.0.0.0", port: int = 8000) -> None:
         """Binds the server to the given address, and listens for new connections."""
 
         if self.is_running:
@@ -41,13 +46,50 @@ class Server:
 
         self.is_running = False
 
-
     def accept_new_connections(self):
         while self.is_running:
             try:
                 client_socket, address = self.socket.accept()
+
+                # Handle new connection in a separate thread
+                thread = threading.Thread(
+                    target=self.handle_client,
+                    args=(client_socket, address)
+                )
+                thread.daemon = True
+                thread.start()
             except socket.timeout:
-                pass
+                continue
+            except Exception as e:
+                if self.is_running:
+                    raise Exception(e)
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
-        ...
+        """Handles a new connection."""
+
+        print(f"New connection from {address}")
+
+        connection_details_json: str = client_socket.recv(self.buffer_size).decode().strip()
+        connection_details: dict = json.loads(connection_details_json)
+
+        data = {
+            "hostname": connection_details["hostname"],
+            "ip": address[0],
+            "port": address[1]
+        }
+
+        # Insert new client to agent table in db.
+        insert = Insert(agents_table).values(
+            [data]
+        )
+        self.db_engine.execute(insert)
+        self.db_engine.commit()
+
+        try:
+            while self.is_running:
+                data = client_socket.recv(self.buffer_size)
+                if not data:
+                    break
+
+        finally:
+            client_socket.close()
