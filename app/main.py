@@ -28,6 +28,7 @@ async def on_startup():
 @app.on_event("shutdown")
 async def on_shutdown():
 
+    # Stop server
     server.stop()
 
     # Close DB

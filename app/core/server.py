@@ -62,7 +62,7 @@ class Server:
             try:
                 print("Waiting for new connections...")
                 client_socket, address = self.socket.accept()
-                print("New connection from", address)
+                print(f"New connection from f{address[0]}:{address[1]}.")
 
                 # Handle new connection in a separate thread
                 thread = threading.Thread(
@@ -79,8 +79,6 @@ class Server:
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
         """Handles a new connection."""
-
-        print(f"New connection from {address}")
 
         connection_details_json: str = client_socket.recv(self.buffer_size).decode().strip()
         connection_details: dict = json.loads(connection_details_json)
