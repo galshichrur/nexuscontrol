@@ -5,7 +5,6 @@ from typing import Self
 from db.components import Field, BaseStatement
 from db.table import Table, RawItem, Item
 
-
 class Query[D: RawItem, P: RawItem | Iterable[RawItem]](ABC):
 
     @abstractmethod
@@ -20,9 +19,10 @@ class Query[D: RawItem, P: RawItem | Iterable[RawItem]](ABC):
 
 
 class StatementQuery(ABC):
-    statement: BaseStatement
+    def __init__(self, statement):
+        self.statement = statement
 
-    def where(self, statement: BaseStatement) -> Self:
+    def where(self, statement) -> Self:
         self.statement = statement
         return self
 
@@ -253,4 +253,8 @@ def test_delete_drop():
 
 
 if __name__ == '__main__':
+    test_select()
+    test_insert()
+    test_create()
+    test_update()
     test_delete_drop()
