@@ -23,7 +23,8 @@ class Server:
         """Binds the server to the given address, and listens for new connections."""
 
         if self.is_running:
-            raise Exception("Server is already running.")
+            print("Server is already running.")
+            return
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -41,11 +42,12 @@ class Server:
         self.server_thread.daemon = True
         self.server_thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stops the server from listening for new connections."""
 
         if not self.is_running:
-            raise Exception("Server isn't running.")
+            print("Server isn't running.")
+            return
 
         if self.socket:
             try:
@@ -57,10 +59,11 @@ class Server:
         self.is_running = False
         print("Server stopped.")
 
-    def accept_new_connections(self):
+    def accept_new_connections(self) -> None:
         while self.is_running:
             try:
                 print("Waiting for new connections...")
+
                 client_socket, address = self.socket.accept()
                 print(f"New connection from f{address[0]}:{address[1]}.")
 
@@ -85,6 +88,7 @@ class Server:
 
         conn_agent_id = connection_details.get("agent_id")
         if not conn_agent_id:
+            # Set available agent ID
             select_max = Select(agents_table).all()
             result = list(self.db_engine.execute(select_max))
             conn_agent_id = max([row["agent_id"] for row in result], default=0) + 1
@@ -120,6 +124,8 @@ class Server:
             self.db_engine.execute(insert)
 
         self.db_engine.commit()
+
+        print(f"New agent connected successfully at {address[0]}:{address[1]}.\n Assigned agent ID: {conn_agent_id}.")
 
         # Send back the assigned agent_id
         client_socket.send(json.dumps({"agent_id": agent_id}).encode())
