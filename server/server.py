@@ -7,17 +7,17 @@ class Server:
 
         self.socket: socket = None
         self.connected_clients = {}
-        self.is_running = False
-        self.host = None
-        self.port = None
-        self.new_connection_time = 1
-        self.server_thread = None
+        self.is_running: bool = False
+        self.host: str | None = None
+        self.port: int | None = None
+        self.new_connection_time: int = 1
+        self.server_thread: threading.Thread | None = None
 
-    def start(self, host: str, port: int) -> None:
+    def start(self, host: str = "0.0.0.0", port: int = "8000") -> None:
         """Binds the server to the given address, and listens for new connections."""
 
         if self.is_running:
-            return
+            raise Exception("Server is already running.")
 
         self.socket = socket.socket()
         self.socket.bind((host, port))
