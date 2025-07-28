@@ -1,14 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from db.engine import Engine
 from db.models import agents_table
 from db.query import Create
 from server import Server
-from dotenv import load_dotenv
-import os
+from config import Config
+from api.routes import router as api_router
 
-load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,12 +33,26 @@ async def lifespan(app: FastAPI):
 
 def init_db(engine: Engine) -> None:
 
-    engine.open(os.getenv("DB_PATH"))
+    engine.open(Config.DB_PATH)
     create = Create(agents_table, exists_ok=True)
     engine.execute(create)
     engine.commit()
 
     print("Database initialized.")
 
-app = FastAPI(title="Nexus Control", version="0.1.0", lifespan=lifespan)
-app.mount("/", StaticFiles(directory="../frontend/out", html=True), name="static")
+app = FastAPI(
+    title=Config.API_TITLE, 
+    version=Config.API_VERSION, 
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=Config.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(api_router, prefix=Config.API_PREFIX)
+
+app.mount("/", StaticFiles(directory=Config.FRONTEND_BUILD_PATH, html=True), name="static")
