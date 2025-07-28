@@ -28,21 +28,20 @@ async def on_startup():
 @app.on_event("shutdown")
 async def on_shutdown():
 
+    server.stop()
+
     # Close DB
     engine.commit()
     engine.close()
 
+    print("Server successfully stopped.")
+
 def init_db() -> None:
+
     engine.open(os.getenv("DB_PATH"))
     create = Create(agents_table, exists_ok=True)
     engine.execute(create)
     engine.commit()
 
-@app.get("/agents")
-async def get_agents():
-    """Returns a list of connected agents."""
-    agents = [
-        {"id": agent_id, **agent["data"]}
-        for agent_id, agent in server.connected_clients.items()
-    ]
-    return {"agents": agents}
+    print("Database initialized.")
+
