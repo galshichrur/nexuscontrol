@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from db.engine import Engine
 from db.models import agents_table
 from db.query import Create
-from core.server import Server
+from server import Server
 from dotenv import load_dotenv
 import os
 
