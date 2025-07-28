@@ -2,8 +2,7 @@ import os
 import sys
 import socket
 import json
-import platform
-
+from data import connection_details
 
 SERVER_HOST: str = sys.argv[0]
 SERVER_PORT: int = int(sys.argv[1])
@@ -24,12 +23,6 @@ def get_uuid() -> str:
 def first_time_connect() -> str:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((SERVER_HOST, SERVER_PORT))
-
-    connection_details: dict = {
-        "hostname": socket.gethostname(),
-        "cwd": os.getcwd(),
-        "os": platform.system()
-    }
 
     # Send connection details to server
     s.send(json.dumps(connection_details).encode().strip())
