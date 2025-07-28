@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from db.engine import Engine
-from server import Server
+from core.server import Server
 from dotenv import load_dotenv
 import os
 
