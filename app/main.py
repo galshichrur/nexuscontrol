@@ -41,7 +41,7 @@ class ServerStats(BaseModel):
     os_version: str
     os_architecture: str
     server_time: str
-
+    server_start_time: str
 
 class AgentData(BaseModel):
 
@@ -127,17 +127,20 @@ async def get_server_stats():
         hostname=utils.hostname,
         local_ip=utils.local_ip,
         public_ip=utils.public_ip,
+        mac_address=utils.mac_address,
+
         cpu_usage=utils.cpu_usage,
         memory_usage=utils.memory_usage,
         network_download_kbps=utils.network_download_kbps,
         network_upload_kbps=utils.network_upload_kbps,
-        mac_address=utils.mac_address,
+
         max_connections=server.max_connections,
         encryption=True,
         os_name=utils.os_name,
         os_version=utils.os_version,
         os_architecture=utils.os_architecture,
         server_time=utils.server_time,
+        server_start_time=utils.server_start_time,
     )
 
 @app.post("/server/control")

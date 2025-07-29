@@ -31,6 +31,7 @@ os_version = platform.version()
 os_architecture = platform.architecture()[0]
 server_time = str(datetime.datetime.now())
 network_download_kbps, network_upload_kbps = get_network_usage()
+server_start_time = str(datetime.datetime.now())
 
 def update():
     global cpu_usage, memory_usage, server_time, network_upload_kbps, network_download_kbps
