@@ -7,7 +7,7 @@ import os
 import logging
 from typing import Type
 from db.engine import Engine
-from db.models import agents_table, agent_id
+from db.models import agents_table, agent_id, latest_ping_time
 from db.query import Insert, Select, Update
 from logs import logger
 
@@ -94,19 +94,19 @@ class Server:
         db_engine_thread.open(os.getenv("DB_PATH"))
 
         try:
-            connection_details_json: str = client_socket.recv(self.buffer_size).decode()
-            connection_details: dict = json.loads(connection_details_json)
+            raw_data: str = client_socket.recv(self.buffer_size).decode()
+            connection_details: dict = json.loads(raw_data)
 
-            conn_agent_id = connection_details.get("agent_id")
-            if not conn_agent_id:
-                # Set new UUID
-                conn_agent_id = str(uuid.uuid4())
+            agent_uuid = connection_details.get("agent_id")
+            if agent_uuid is None:
+                agent_uuid = str(uuid.uuid4())
 
+            current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             data = {
-                "agent_id": conn_agent_id,
+                "agent_id": agent_uuid,
                 "name": connection_details.get("hostname", "unknown"),
-                "connection_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-                "status": True,
+                "connection_time": current_time,
+                "latest_ping_time": current_time,
                 "port": str(address[1]),
 
                 "hostname": connection_details.get("hostname", "unknown"),
@@ -122,26 +122,48 @@ class Server:
             }
 
             # Check if agent exists in the database
-            select = Select(agents_table).where((agent_id == conn_agent_id))
+            select = Select(agents_table).where((agent_id == agent_uuid))
             exists = list(db_engine_thread.execute(select))
 
             if exists:
                 logger.info("Agent already exists, updating connection.")
                 # Update existing agent
-                update = Update(agents_table).set(data).where(agent_id == conn_agent_id)
+                update = Update(agents_table).set(data).where(agent_id == agent_uuid)
                 db_engine_thread.execute(update)
             else:
                 logger.info("Agent not found, creating new one.")
                 # Insert new agent
                 insert = Insert(agents_table).values([data])
                 db_engine_thread.execute(insert)
-                logger.info(f"New agent connected successfully at {address[0]}:{address[1]}.\nAssigned agent ID: {conn_agent_id}.")
+                logger.info(f"New agent stored to agent table in db {address[0]}:{address[1]}, agent ID: {agent_uuid}.")
+
+            # Send back the agent_id
+            client_socket.send(json.dumps(agent_uuid).encode())
 
             db_engine_thread.commit()
 
-            # Send back the assigned agent_id
-            client_socket.send(json.dumps(conn_agent_id).encode())
+            self.listen_for_ping(client_socket)
+
         except Exception as e:
             logging.log(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
             db_engine_thread.close()
+
+    def listen_for_ping(self, client_socket: socket.socket):
+
+        db_engine = self.db_engine_class()
+        db_engine.open(os.getenv("DB_PATH"))
+
+        try:
+            while self.is_running:
+                agent_uuid = client_socket.recv(self.buffer_size).decode()
+                if not agent_uuid:
+                    break
+
+                now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                update = Update(agents_table).set({"latest_ping_time": now}).where(agent_id == agent_uuid)
+                db_engine.execute(update)
+                db_engine.commit()
+                logger.info(f"Ping received from agent {agent_uuid}")
+        finally:
+            db_engine.close()

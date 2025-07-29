@@ -48,7 +48,7 @@ class AgentData(BaseModel):
     agent_id: str
     name: str
     connection_time: str
-    status: bool
+    latest_ping_time: str
     port: str
 
     hostname: str
