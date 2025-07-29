@@ -1,6 +1,7 @@
+import utils
 from contextlib import asynccontextmanager
 from typing import List
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from db.engine import Engine
@@ -9,8 +10,10 @@ from db.query import Create, Select, Update
 from server import Server
 from config import Config
 from pydantic import BaseModel
+from logs import load_logs
 
 
+# Global instances
 engine: Engine | None = None
 server: Server | None = None
 
@@ -22,9 +25,23 @@ class ServerStatus(BaseModel):
     port: int
     host: str
 
-class ServerControl(BaseModel):
+class ServerStats(BaseModel):
 
-    action: str
+    hostname: str
+    local_ip: str
+    public_ip: str
+    mac_address: str
+    cpu_usage: float
+    memory_usage: float
+    network_download_kbps: float
+    network_upload_kbps: float
+    max_connections: int
+    encryption: bool
+    os_name: str
+    os_version: str
+    os_architecture: str
+    server_time: str
+
 
 class AgentData(BaseModel):
 
@@ -101,19 +118,35 @@ async def get_server_status():
         host=server.host,
     )
 
-@app.post("/server/control")
-async def control_server(control: ServerControl):
+@app.get("/server/stats", response_model=ServerStats)
+async def get_server_stats():
 
-    if control.action == "start":
+    return ServerStats(
+        hostname=utils.hostname,
+        local_ip=utils.local_ip,
+        public_ip=utils.public_ip,
+        cpu_usage=utils.cpu_usage,
+        memory_usage=utils.memory_usage,
+        network_download_kbps=utils.network_download_kbps,
+        network_upload_kbps=utils.network_upload_kbps,
+        mac_address=utils.mac_address,
+        max_connections=server.max_connections,
+        encryption=True,
+        os_name=utils.os_name,
+        os_version=utils.os_version,
+        os_architecture=utils.os_architecture,
+        server_time=utils.server_time,
+    )
+
+@app.post("/server/control")
+async def control_server(action: str):
+
+    if action == "start":
         server.start(Config.HOST, Config.PORT)
         return {"message": "Server started successfully", "action": "start"}
-    elif control.action == "stop":
+    elif action == "stop":
         server.stop()
         return {"message": "Server stopped successfully", "action": "stop"}
-    elif control.action == "restart":
-        server.stop()
-        server.start(Config.HOST, Config.PORT)
-        return {"message": "Server restarted successfully", "action": "restart"}
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
 
@@ -125,7 +158,6 @@ async def get_agents() -> List[AgentData]:
 
     agents_list = [AgentData.model_validate(row) for row in result]
     return agents_list
-
 
 @app.get("/agents/{agent_id}", response_model=AgentData)
 async def get_agent(agent_id: str) -> AgentData:
@@ -141,45 +173,24 @@ async def get_agent(agent_id: str) -> AgentData:
     raise HTTPException(status_code=404, detail="Agent not found")
 
 @app.post("/agents/{agent_id}")
-async def update_agent_name(agent_id: str, name: str) -> None:
+async def update_agent_name(agent_id: str, name: str):
 
     update = Update(agents_table).set({"hostname": name}).where(agent_id_field == agent_id)
     engine.execute(update)
 
-
-@app.post("/terminal/execute")
-async def execute_terminal_command(command: TerminalCommand):
-
-    return {
-        "command": command.command,
-        "agent_id": command.agent_id,
-        "output": f"Executed command '{command.command}' on agent {command.agent_id}",
-        "success": True,
-        "timestamp": "2024-01-01T10:00:00Z"
-    }
+    return {"message": "Agent updated successfully", "agent_id": agent_id}
 
 @app.get("/health")
 async def health_check():
 
     return {
         "status": "healthy", 
-        "message": "Nexus Control API is running",
-        "server_running": server.is_running if server else False,
-        "database_connected": engine is not None
+        "message": "Nexus Control API is running"
     }
 
-@app.get("/system/info")
-async def get_system_info():
-
-    return {
-        "platform": "Windows",
-        "python_version": "3.11+",
-        "fastapi_version": "0.104.0",
-        "database": "SQLite",
-        "frontend": "Next.js",
-        "tcp_server_host": Config.HOST,
-        "tcp_server_port": Config.PORT
-    }
+@app.get("/logs")
+async def get_logs(limit: int = Query(20, ge=1)):
+    return load_logs(limit)
 
 
 app.mount("/", StaticFiles(directory=Config.FRONTEND_BUILD_PATH, html=True), name="static")

@@ -4,6 +4,7 @@ import json
 import time
 import uuid
 import os
+import logging
 from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id
@@ -21,6 +22,7 @@ class Server:
         self.server_thread: threading.Thread | None = None
         self.timeout_secs: int = 160
         self.check_offline_agents_time_secs: int = 60
+        self.max_connections: int = 5
 
     def start(self, host: str = "0.0.0.0", port: int = 8080) -> None:
         """Binds the server to the given address, and listens for new connections."""
@@ -32,13 +34,13 @@ class Server:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((host, port))
-        self.socket.listen()
+        self.socket.listen(self.max_connections)
 
         self.is_running = True
         self.host = host
         self.port = port
 
-        print(f"Server successfully started on {host}:{port}.")
+        logging.log(logging.INFO, "Server successfully started on {host}:{port}.")
 
         # Accept new connection in separate thread
         self.server_thread = threading.Thread(target=self.accept_new_connections)
@@ -135,6 +137,6 @@ class Server:
             # Send back the assigned agent_id
             client_socket.send(json.dumps(conn_agent_id).encode())
         except Exception as e:
-            print(f"Error handling client {address[0]}:{address[1]}: {e}")
+            logging.log(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
             db_engine_thread.close()
