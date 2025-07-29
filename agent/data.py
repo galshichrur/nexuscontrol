@@ -26,6 +26,8 @@ connection_details: dict = {
     "hostname": hostname,
     "cwd": os.getcwd(),
     "os_name": platform.system(),
+    "os_version": platform.version(),
+    "os_architecture": platform.architecture()[0],
     "local_ip": local_ip,
     "public_ip": requests.get('https://api.ipify.org').text,
     "mac_address": get_mac_address(),

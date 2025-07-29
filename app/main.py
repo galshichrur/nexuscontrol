@@ -52,6 +52,8 @@ class AgentData(BaseModel):
     hostname: str
     cwd: str
     os_name: str
+    os_version: str
+    os_architecture: str
     local_ip: str
     public_ip: str
     mac_address: str
