@@ -10,10 +10,10 @@ SERVER_PORT: int = int(sys.argv[2])
 BUFFER_SIZE: int = 1024
 SEPARATOR: str = "<sep>"
 AGENT_ID_FILENAME = "uuid.txt"
-SLEEP_INTERVAL: float = 120
+SLEEP_INTERVAL: float = 2
 
 
-def get_uuid(s: socket.socket) -> str:
+def get_uuid() -> str | None:
 
     if os.path.exists(AGENT_ID_FILENAME):
         with open(AGENT_ID_FILENAME, "r") as f:
@@ -21,43 +21,31 @@ def get_uuid(s: socket.socket) -> str:
             if data:
                 return data
             else:
-                return write_to_file(s)
+                return None
 
-    return write_to_file(s)
+    return None
 
-def write_to_file(s: socket.socket) -> str:
-    uid = first_time_connect(s)
-    with open(AGENT_ID_FILENAME, "w") as f:
-        f.write(uid)
-    print(uid)
-    return uid
+def connect(s: socket.socket) -> None:
+    agent_id = get_uuid()
 
-def first_time_connect(s: socket.socket) -> str:
-    data: str = json.dumps(connection_details)
+    if agent_id is not None:
+        connection_details["agent_id"] = agent_id
 
-    # Send connection details to server
+    data = json.dumps(connection_details)
     s.send(data.encode())
 
-    # Receive assigned agent_id
-    return s.recv(BUFFER_SIZE).decode()
-
-def ping(agent_id: str, s: socket.socket) -> None:
+    agent_uid = s.recv(BUFFER_SIZE).decode()
+    with open(AGENT_ID_FILENAME, "w") as f:
+        f.write(agent_uid)
 
     while True:
+        s.send(json.dumps(agent_uid).encode())
         time.sleep(SLEEP_INTERVAL)
-
-        # Add agent_id to connection details.
-        data = connection_details
-        data["agent_id"] = agent_id
-
-        s.send(json.dumps(data).encode().strip())
-        print(f"Sent ping {data}")
 
 def main() -> None:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((SERVER_HOST, SERVER_PORT))
-    agent_id = get_uuid(s)
-    ping(agent_id, s)
+    connect(s)
 
 if __name__ == '__main__':
     main()
