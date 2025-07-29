@@ -5,6 +5,7 @@ from db.table import Table
 
 # Fields set by server.
 agent_id = Field("agent_id", str, primary=True, unique=True)  # Agent unique UUID4
+name = Field("name", str)
 connection_time = Field("connection_time", str)  # A timestamp of when the agent connected.
 status = Field("status", bool)
 port = Field("port", str)
@@ -21,4 +22,4 @@ mac_address = Field("mac_address", str)
 is_admin = Field("is_admin", bool)
 username = Field("username", str)
 
-agents_table = Table("agents", (agent_id, connection_time, status, port, hostname, cwd, os_name, local_ip, public_ip, mac_address, is_admin, username))
+agents_table = Table("agents", (agent_id, name, connection_time, status, port, hostname, cwd, os_name, os_version, os_architecture, local_ip, public_ip, mac_address, is_admin, username))

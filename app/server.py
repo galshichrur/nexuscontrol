@@ -104,6 +104,7 @@ class Server:
 
             data = {
                 "agent_id": conn_agent_id,
+                "name": connection_details.get("hostname", "unknown"),
                 "connection_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
                 "status": True,
                 "port": str(address[1]),

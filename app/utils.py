@@ -18,7 +18,7 @@ def get_network_usage(interval: int = 3) -> tuple[float, float]:
     bytes_sent_diff = current_bytes_sent - last_bytes_sent
     bytes_recv_diff = current_bytes_recv - last_bytes_recv
 
-    return (bytes_recv_diff / interval), (bytes_sent_diff / interval)
+    return round((bytes_recv_diff / interval), 2), round((bytes_sent_diff / interval), 2)
 
 hostname = socket.gethostname()
 local_ip = socket.gethostbyname(hostname)

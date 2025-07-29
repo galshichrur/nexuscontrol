@@ -46,9 +46,11 @@ class ServerStats(BaseModel):
 class AgentData(BaseModel):
 
     agent_id: str
+    name: str
     connection_time: str
     status: bool
     port: str
+
     hostname: str
     cwd: str
     os_name: str
@@ -180,10 +182,13 @@ async def get_agent(agent_id: str) -> AgentData:
 @app.post("/agents/{agent_id}")
 async def update_agent_name(agent_id: str, name: str):
 
-    update = Update(agents_table).set({"hostname": name}).where(agent_id_field == agent_id)
-    engine.execute(update)
+    try:
+        update = Update(agents_table).set({"name": name}).where(agent_id_field == agent_id)
+        engine.execute(update)
 
-    return {"message": "Agent updated successfully", "agent_id": agent_id}
+        return {"message": "Agent updated successfully", "agent_id": agent_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/health")
 async def health_check():
