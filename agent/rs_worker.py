@@ -10,8 +10,8 @@ SERVER_PORT: int = int(sys.argv[2])
 BUFFER_SIZE: int = 1024
 SEPARATOR: str = "<sep>"
 AGENT_ID_FILENAME = "uuid.txt"
-SLEEP_INTERVAL: float = 90
-RECV_TIMEOUT = 2
+SLEEP_INTERVAL: float = 100
+RECV_TIMEOUT = 10
 
 def get_uuid() -> str | None:
 
@@ -35,10 +35,11 @@ def connect(s: socket.socket) -> None:
     data = json.dumps(connection_details)
     s.send(data.encode())
 
-    agent_uid = s.recv(BUFFER_SIZE).decode().strip()
+    agent_uid = json.loads(s.recv(BUFFER_SIZE).decode().strip())
+    print(agent_uid)
     with open(AGENT_ID_FILENAME, "w") as f:
         f.write(agent_uid)
-    print(agent_uid)
+
     while True:
         s.send(json.dumps(agent_uid).encode())
         print("Sent ping")

@@ -156,12 +156,13 @@ class Server:
 
         try:
             while self.is_running:
-                agent_uuid = client_socket.recv(self.buffer_size).decode()
+                agent_uuid = str(json.loads(client_socket.recv(self.buffer_size).decode()))
                 if not agent_uuid:
                     break
 
                 now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                update = Update(agents_table).set({"latest_ping_time": now}).where(agent_id == agent_uuid)
+                update = Update(agents_table).set({latest_ping_time: now}).where(agent_id == agent_uuid)
+                print(update)
                 db_engine.execute(update)
                 db_engine.commit()
                 logger.info(f"Ping received from agent {agent_uuid}")
