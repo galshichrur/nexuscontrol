@@ -10,7 +10,7 @@ from db.query import Create, Select, Update
 from server import Server
 from config import Config
 from pydantic import BaseModel
-from logs import load_logs
+from logs import load_logs, logger
 
 
 # Global instances
@@ -87,7 +87,7 @@ async def lifespan(app: FastAPI):
     # Close DB
     engine.commit()
     engine.close()
-    print("Server successfully stopped.")
+    logger.info("Server successfully stopped.")
 
 def init_db() -> None:
     global engine
@@ -96,7 +96,7 @@ def init_db() -> None:
     engine.execute(create)
     engine.commit()
 
-    print("Database initialized.")
+    logger.info("Database initialized.")
 app = FastAPI(
     title=Config.API_TITLE, 
     version=Config.API_VERSION, 
@@ -122,7 +122,7 @@ async def get_server_status():
 
 @app.get("/server/stats", response_model=ServerStats)
 async def get_server_stats():
-
+    utils.update()
     return ServerStats(
         hostname=utils.hostname,
         local_ip=utils.local_ip,

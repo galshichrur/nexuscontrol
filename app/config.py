@@ -22,4 +22,7 @@ class Config:
     # API
     API_PREFIX = "/api"
     API_TITLE = "Nexus Control API"
-    API_VERSION = "0.1.0" 
+    API_VERSION = "0.1.0"
+
+    # Logs
+    LOGS_PATH = os.getenv("LOGS_PATH", "logs")

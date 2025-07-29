@@ -9,6 +9,8 @@ from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id
 from db.query import Insert, Select, Update
+from logs import logger
+
 
 
 class Server:
@@ -28,7 +30,7 @@ class Server:
         """Binds the server to the given address, and listens for new connections."""
 
         if self.is_running:
-            print("Server is already running.")
+            logger.error("Server is already running.")
             return
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -40,7 +42,7 @@ class Server:
         self.host = host
         self.port = port
 
-        logging.log(logging.INFO, "Server successfully started on {host}:{port}.")
+        logging.info(f"Server successfully started on {host}:{port}.")
 
         # Accept new connection in separate thread
         self.server_thread = threading.Thread(target=self.accept_new_connections)
@@ -51,7 +53,7 @@ class Server:
         """Stops the server from listening for new connections."""
 
         if not self.is_running:
-            print("Server isn't running.")
+            logger.error("Server isn't running.")
             return
 
         if self.socket:
@@ -62,14 +64,14 @@ class Server:
             self.socket = None
 
         self.is_running = False
-        print("Server stopped.")
+        logger.info("Server stopped.")
 
     def accept_new_connections(self) -> None:
 
         while self.is_running:
             try:
                 client_socket, address = self.socket.accept()
-                print(f"New connection from {address[0]}:{address[1]}.")
+                logger.info(f"New connection from {address[0]}:{address[1]}.")
 
                 # Handle new connection in a separate thread
                 thread = threading.Thread(
@@ -87,7 +89,7 @@ class Server:
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
         """Handles a new connection."""
 
-        print(f"Stated handling new connection: {address[0]}:{address[1]}.")
+        logger.info(f"Stated handling new connection: {address[0]}:{address[1]}.")
         db_engine_thread = self.db_engine_class()
         db_engine_thread.open(os.getenv("DB_PATH"))
 
@@ -109,6 +111,8 @@ class Server:
                 "hostname": connection_details.get("hostname", "unknown"),
                 "cwd": connection_details.get("cwd", "unknown"),
                 "os_name": connection_details.get("os_name", "unknown"),
+                "os_version": connection_details.get("os_version", "unknown"),
+                "os_architecture": connection_details.get("os_architecture", "unknown"),
                 "local_ip": connection_details.get("local_ip", "unknown"),
                 "public_ip": connection_details.get("public_ip", "unknown"),
                 "mac_address": connection_details.get("mac_address", "unknown"),
@@ -121,16 +125,16 @@ class Server:
             exists = list(db_engine_thread.execute(select))
 
             if exists:
-                print("Agent already exists, updating connection.")
+                logger.info("Agent already exists, updating connection.")
                 # Update existing agent
                 update = Update(agents_table).set(data).where(agent_id == conn_agent_id)
                 db_engine_thread.execute(update)
             else:
-                print("Agent not found, creating new one.")
+                logger.info("Agent not found, creating new one.")
                 # Insert new agent
                 insert = Insert(agents_table).values([data])
                 db_engine_thread.execute(insert)
-                print(f"New agent connected successfully at {address[0]}:{address[1]}.\nAssigned agent ID: {conn_agent_id}.")
+                logger.info(f"New agent connected successfully at {address[0]}:{address[1]}.\nAssigned agent ID: {conn_agent_id}.")
 
             db_engine_thread.commit()
 
