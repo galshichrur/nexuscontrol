@@ -162,7 +162,7 @@ class Server:
 
                 now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                 update = Update(agents_table).set({latest_ping_time: now}).where(agent_id == agent_uuid)
-                print(update)
+                logger.info(f"Database updated agent: {agent_uuid} latest ping time.")
                 db_engine.execute(update)
                 db_engine.commit()
                 logger.info(f"Ping received from agent {agent_uuid}")

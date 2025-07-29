@@ -17,8 +17,7 @@ def get_uuid() -> str | None:
 
     if os.path.exists(AGENT_ID_FILENAME):
         with open(AGENT_ID_FILENAME, "r") as f:
-            data = f.read()[1:-1]
-            print(data)
+            data = f.read()
             if data:
                 return data
             else:
@@ -36,13 +35,11 @@ def connect(s: socket.socket) -> None:
     s.send(data.encode())
 
     agent_uid = json.loads(s.recv(BUFFER_SIZE).decode().strip())
-    print(agent_uid)
     with open(AGENT_ID_FILENAME, "w") as f:
         f.write(agent_uid)
 
     while True:
         s.send(json.dumps(agent_uid).encode())
-        print("Sent ping")
         try:
             command = s.recv(BUFFER_SIZE)
             if command:
