@@ -7,7 +7,7 @@ import os
 import logging
 from typing import Type
 from db.engine import Engine
-from db.models import agents_table, agent_id
+from db.models import agents_table, agent_id, status
 from db.query import Insert, Select, Update
 from logs import logger
 
@@ -16,16 +16,18 @@ from logs import logger
 class Server:
     def __init__(self, db_engine_class: Type[Engine], buffer_size: int = 1024) -> None:
         self.db_engine_class: Type[Engine] = db_engine_class
-        self.buffer_size: int = buffer_size
+        self.BUFFER_SIZE: int = buffer_size
         self.socket: socket = None
         self.is_running: bool = False
         self.host: str | None = None
         self.port: int | None = None
         self.server_thread: threading.Thread | None = None
-        self.timeout_secs: int = 160
-        self.check_offline_agents_time_secs: int = 60
-        self.max_connections: int = 5
+
+        self.MAX_TIMEOUT: int = 60
+        self.MAX_CONNECTIONS: int = 5
+
         self.connected_agents: dict[str, socket.socket] = {}
+        self.pending_command_responses: dict[str, dict] = {}
 
     def start(self, host: str = "0.0.0.0", port: int = 8080) -> None:
         """Binds the server to the given address, and listens for new connections."""
@@ -37,7 +39,7 @@ class Server:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((host, port))
-        self.socket.listen(self.max_connections)
+        self.socket.listen(self.MAX_CONNECTIONS)
 
         self.is_running = True
         self.host = host
@@ -89,14 +91,16 @@ class Server:
                     raise Exception(e)
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
-        """Handles a new connection."""
 
         logger.info(f"Stated handling new connection: {address[0]}:{address[1]}.")
         db_engine_thread = self.db_engine_class()
         db_engine_thread.open(os.getenv("DB_PATH"))
+        agent_uuid = None
 
         try:
-            raw_data: str = client_socket.recv(self.buffer_size).decode()
+            client_socket.settimeout(self.MAX_TIMEOUT)  # Set timeout.
+
+            raw_data: str = client_socket.recv(self.BUFFER_SIZE).decode()
             initial_connection_info: dict = json.loads(raw_data)
 
             agent_uuid = initial_connection_info.get("agent_id")
@@ -108,7 +112,10 @@ class Server:
                 "agent_id": agent_uuid,
                 "name": initial_connection_info.get("hostname", "unknown"),
                 "connection_time": current_time,
+                "host": address[0],
                 "port": str(address[1]),
+                "status": True,
+
                 "hostname": initial_connection_info.get("hostname", "unknown"),
                 "cwd": initial_connection_info.get("cwd", "unknown"),
                 "os_name": initial_connection_info.get("os_name", "unknown"),
@@ -137,46 +144,87 @@ class Server:
                 db_engine_thread.execute(insert)
                 logger.info(f"New agent stored to agent table in db {address[0]}:{address[1]}, agent ID: {agent_uuid}.")
 
-            # Send back the agent_id
+            # Send back the agent_uid
             client_socket.send(json.dumps(agent_uuid).encode())
-
-            # Save to db
             db_engine_thread.commit()
 
             # Store agent socket
             self.connected_agents[agent_uuid] = client_socket
+            logger.info(f"Agent {agent_uuid} is connected and online.")
+
+            # Communication loop
+            while self.is_running:
+                try:
+                    data_received = client_socket.recv(self.BUFFER_SIZE).decode()
+                    if not data_received:  # Agent disconnected.
+                        break
+
+                    response = json.loads(data_received)
+                    if response.get("type") == "command_response":
+                        self.pending_command_responses[response["command_id"]] = response
+                    elif response.get("type") == "heartbeat":  # Heartbeat from agent to keep the connection alive.
+                        logging.info(f"Server heartbeat received from agent {agent_uuid}.")
+                        pass
+
+                except socket.timeout:  # If didn't receive command or heartbeat, agent offline.
+                    break
+                except Exception as e:
+                    logger.error(f"Unexpected error in handle_client loop: {e}")
+                    break
 
         except Exception as e:
-            logging.log(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
+            logging.warning(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
+            if agent_uuid:
+                # Update agent status to offline in the database
+                self._set_agent_offline(agent_uuid)
+
+                # Remove agent from the active connections dictionary
+                if agent_uuid in self.connected_agents:
+                    del self.connected_agents[agent_uuid]
+
+                logger.info(f"Agent {agent_uuid} has disconnected.")
+            client_socket.close()
             db_engine_thread.close()
 
     def interact_with_agent(self, agent_uid: str, command: str) -> dict:
 
-        logging.info(f"New command to {agent_uid}.")
-        if agent_uid not in self.connected_agents:
+        command_id = str(uuid.uuid4())
+        agent_socket = self.connected_agents[agent_uid]
+        if not agent_socket:
+            self._set_agent_offline(agent_uid)
             return {
                 "status": False,
                 "command_response": None,
                 "cwd": None,
             }
+        data = {
+            "command_id": command_id,
+            "command": command,
+        }
+        agent_socket.send(json.dumps(data).encode())  # Send command.
+        print(f"Sent command to agent {agent_uid}: {command}.")
 
-        if command is None:
-            command = "test"
-
-        agent_socket = self.connected_agents[agent_uid]  # Get agent socket.
-        agent_socket.send(json.dumps(command).encode())  # Send command.
-        response = json.loads(agent_socket.recv(self.buffer_size).decode())  # Receive response.
-
-        if response:
+        response_data = self.pending_command_responses.pop(command_id)
+        if response_data:
             return {
                 "status": True,
-                "command_response": response["command_response"],
-                "cwd": response["cwd"],
+                "command_response": response_data.get("command_response"),
+                "cwd": response_data.get("cwd"),
             }
 
+        self._set_agent_offline(agent_uid)
         return {
             "status": False,
             "command_response": None,
             "cwd": None,
         }
+
+    def _set_agent_offline(self, agent_uuid: str) -> None:
+        db_engine_thread = self.db_engine_class()
+        db_engine_thread.open(os.getenv("DB_PATH"))
+
+        update_query = Update(agents_table).set({status: False}).where(agent_id == agent_uuid)
+        db_engine_thread.execute(update_query)
+
+        db_engine_thread.commit()

