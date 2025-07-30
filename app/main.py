@@ -48,9 +48,7 @@ class AgentData(BaseModel):
     agent_id: str
     name: str
     connection_time: str
-    latest_ping_time: str
     port: str
-
     hostname: str
     cwd: str
     os_name: str
@@ -62,10 +60,16 @@ class AgentData(BaseModel):
     is_admin: bool
     username: str
 
-class TerminalCommand(BaseModel):
+class AgentRequest(BaseModel):
 
-    command: str
     agent_id: str
+    command: str = "test"
+
+class AgentResponse(BaseModel):
+
+    status: bool
+    command_response: str | None = None
+    cwd: str | None = None
 
 
 @asynccontextmanager
@@ -179,12 +183,24 @@ async def get_agent(agent_id: str) -> AgentData:
 
     raise HTTPException(status_code=404, detail="Agent not found")
 
+
+@app.post("/agents/interaction", response_model=AgentResponse)
+async def agent_interaction(request: AgentRequest) -> AgentResponse:
+    try:
+        response = server.interact_with_agent(request.agent_id, request.command)
+        return AgentResponse(status=response["status"], command_response=response["command_response"], cwd=response["cwd"])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/agents/{agent_id}")
 async def update_agent_name(agent_id: str, name: str):
 
     try:
         update = Update(agents_table).set({"name": name}).where(agent_id_field == agent_id)
         engine.execute(update)
+        engine.commit()
+        logger.info(f"Database updated agent name to {name}.")
 
         return {"message": "Agent updated successfully", "agent_id": agent_id}
     except Exception as e:
