@@ -5,6 +5,7 @@ import time
 import uuid
 import os
 import logging
+from time import sleep
 from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id, status
@@ -162,6 +163,7 @@ class Server:
                     response = json.loads(data_received)
                     if response.get("type") == "command_response":
                         self.pending_command_responses[response["command_id"]] = response
+                        logging.info(f"Received command response from agent {agent_uuid}.")
                     elif response.get("type") == "heartbeat":  # Heartbeat from agent to keep the connection alive.
                         logging.info(f"Server heartbeat received from agent {agent_uuid}.")
                         pass
@@ -188,37 +190,43 @@ class Server:
             db_engine_thread.close()
 
     def interact_with_agent(self, agent_uid: str, command: str) -> dict:
+        try:
+            command_id = str(uuid.uuid4())
+            agent_socket = self.connected_agents[agent_uid]
+            if not agent_socket:
+                self._set_agent_offline(agent_uid)
+                return {
+                    "status": False,
+                    "command_response": None,
+                    "cwd": None,
+                }
+            data = {
+                "command_id": command_id,
+                "command": command,
+            }
+            agent_socket.send(json.dumps(data).encode())  # Send command.
+            print(f"Sent command to agent {agent_uid}: {command}.")
 
-        command_id = str(uuid.uuid4())
-        agent_socket = self.connected_agents[agent_uid]
-        if not agent_socket:
+            elapsed = 0
+            while command_id not in self.pending_command_responses and elapsed < self.MAX_TIMEOUT:  # Wait for the response to be received.
+                time.sleep(0.05)
+
+            response_data = self.pending_command_responses.pop(command_id)
+            if response_data:
+                return {
+                    "status": True,
+                    "command_response": response_data.get("command_response"),
+                    "cwd": response_data.get("cwd"),
+                }
+
             self._set_agent_offline(agent_uid)
             return {
                 "status": False,
                 "command_response": None,
                 "cwd": None,
             }
-        data = {
-            "command_id": command_id,
-            "command": command,
-        }
-        agent_socket.send(json.dumps(data).encode())  # Send command.
-        print(f"Sent command to agent {agent_uid}: {command}.")
-
-        response_data = self.pending_command_responses.pop(command_id)
-        if response_data:
-            return {
-                "status": True,
-                "command_response": response_data.get("command_response"),
-                "cwd": response_data.get("cwd"),
-            }
-
-        self._set_agent_offline(agent_uid)
-        return {
-            "status": False,
-            "command_response": None,
-            "cwd": None,
-        }
+        except Exception as e:
+            print(f"Unexpected error in handle_client loop: {e}")
 
     def _set_agent_offline(self, agent_uuid: str) -> None:
         db_engine_thread = self.db_engine_class()
