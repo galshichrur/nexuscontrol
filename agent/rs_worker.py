@@ -9,7 +9,7 @@ SERVER_HOST = sys.argv[1]
 SERVER_PORT = int(sys.argv[2])
 BUFFER_SIZE = 1024
 AGENT_ID_FILENAME = "uuid.txt"
-RECV_TIMEOUT = 50
+RECV_TIMEOUT = 60
 RETRY_CONNECT_INTERVAL = 5
 
 def read_uuid() -> str | None:
