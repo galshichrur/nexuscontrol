@@ -65,13 +65,19 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
             s.send(json.dumps(message).encode())
             print("Sent heartbeat")
 
+        except socket.error:  # If connection is closed, retry connecting to server
+            print("Connection closed, retrying connection.")
+            main()
+
 def connect_to_server(host: str, port: int) -> socket.socket:
     while True:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((host, port))
+            print("Connection established")
             return s
         except socket.error:
+            print("Failed to connect to server, retrying.")
             time.sleep(RETRY_CONNECT_INTERVAL)
 
 def main() -> None:
