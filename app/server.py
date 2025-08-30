@@ -5,7 +5,6 @@ import time
 import uuid
 import os
 import logging
-from time import sleep
 from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id, status
@@ -18,7 +17,7 @@ class Server:
     def __init__(self, db_engine_class: Type[Engine], buffer_size: int = 1024) -> None:
         self.db_engine_class: Type[Engine] = db_engine_class
         self.BUFFER_SIZE: int = buffer_size
-        self.socket: socket = None
+        self.socket: socket.socket | None = None
         self.is_running: bool = False
         self.host: str | None = None
         self.port: int | None = None
@@ -31,7 +30,6 @@ class Server:
         self.pending_command_responses: dict[str, dict] = {}
 
     def start(self, host: str = "0.0.0.0", port: int = 8080) -> None:
-        """Binds the server to the given address, and listens for new connections."""
 
         if self.is_running:
             logger.error("Server is already running.")
@@ -54,7 +52,6 @@ class Server:
         self.server_thread.start()
 
     def stop(self) -> None:
-        """Stops the server from listening for new connections."""
 
         if not self.is_running:
             logger.error("Server isn't running.")
@@ -62,6 +59,10 @@ class Server:
 
         if self.socket:
             try:
+                for agent_uuid, agent_socket in self.connected_agents:
+                    logger.info(f"Socket closed for agent: {agent_uuid}")
+                    agent_socket.close()
+
                 self.socket.close()
             except Exception as e:
                 raise Exception(f"Error closing server socket: {e}")
@@ -190,6 +191,7 @@ class Server:
             db_engine_thread.close()
 
     def interact_with_agent(self, agent_uid: str, command: str) -> dict:
+
         try:
             command_id = str(uuid.uuid4())
             agent_socket = self.connected_agents[agent_uid]
@@ -229,6 +231,7 @@ class Server:
             print(f"Unexpected error in handle_client loop: {e}")
 
     def _set_agent_offline(self, agent_uuid: str) -> None:
+
         db_engine_thread = self.db_engine_class()
         db_engine_thread.open(os.getenv("DB_PATH"))
 
