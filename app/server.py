@@ -5,7 +5,7 @@ import time
 import uuid
 import os
 import logging
-from typing import Type
+from typing import Type, Any
 from db.engine import Engine
 from db.models import agents_table, agent_id, status
 from db.query import Insert, Select, Update
@@ -23,8 +23,8 @@ class Server:
         self.port: int | None = None
         self.server_thread: threading.Thread | None = None
 
-        self.MAX_TIMEOUT: int = 60
-        self.MAX_CONNECTIONS: int = 5
+        self.MAX_TIMEOUT: int = 65
+        self.MAX_CONNECTIONS: int = 1
 
         self.connected_agents: dict[str, socket.socket] = {}
         self.pending_command_responses: dict[str, dict] = {}
@@ -59,18 +59,17 @@ class Server:
 
         if self.socket:
             try:
-                for agent_uuid, agent_socket in self.connected_agents:
-                    logger.info(f"Socket closed for agent: {agent_uuid}")
+                for agent_socket in self.connected_agents.values():
                     agent_socket.close()
 
+                self.connected_agents = {}
                 self.socket.close()
-            except Exception as e:
-                raise Exception(f"Error closing server socket: {e}")
-            self.socket = None
+                self.socket = None
+                self.is_running = False
+                logger.info("Server stopped successfully.")
 
-        self.is_running = False
-        self.connected_agents = {}
-        logger.info("Server stopped.")
+            except Exception as e:
+                logger.error(f"Error closing server socket: {e}")
 
     def accept_new_connections(self) -> None:
 
@@ -176,7 +175,7 @@ class Server:
                     break
 
         except Exception as e:
-            logging.warning(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
+            logging.error(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
             if agent_uuid:
                 # Update agent status to offline in the database
@@ -190,7 +189,7 @@ class Server:
             client_socket.close()
             db_engine_thread.close()
 
-    def interact_with_agent(self, agent_uid: str, command: str) -> dict:
+    def interact_with_agent(self, agent_uid: str, command: str) -> dict[str, bool | None] | None:
 
         try:
             command_id = str(uuid.uuid4())

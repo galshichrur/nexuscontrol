@@ -51,7 +51,7 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
 
                 if not message:  # Server disconnected.
                     s.close()
-                    print("Connection closed.")
+                    print("Server disconnected.")
                     main()
 
                 json_message = json.loads(message)
@@ -72,8 +72,8 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
                 s.send(json.dumps(message).encode())
                 print("Sent heartbeat")
 
-            except socket.error:  # If connection is closed, retry connecting to server
-                print("Connection closed, retrying connection.")
+            except socket.error:
+                print("Connection closed.")
                 main()
 
 def connect_to_server(host: str, port: int) -> socket.socket:
