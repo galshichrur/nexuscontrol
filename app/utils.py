@@ -7,7 +7,7 @@ import time
 from getmac import get_mac_address
 
 
-def get_network_usage(interval: int = 3) -> tuple[float, float]:
+def get_network_usage(interval: int = 1) -> tuple[float, float]:
     last_bytes_sent = psutil.net_io_counters().bytes_sent
     last_bytes_recv = psutil.net_io_counters().bytes_recv
 
