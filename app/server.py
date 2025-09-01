@@ -1,6 +1,5 @@
 import socket
 import threading
-import json
 import time
 import uuid
 import os
@@ -10,7 +9,7 @@ from db.engine import Engine
 from db.models import agents_table, agent_id, status
 from db.query import Insert, Select, Update
 from logs import logger
-
+from helper import send_json, receive_json
 
 
 class Server:
@@ -101,8 +100,7 @@ class Server:
         try:
             client_socket.settimeout(self.MAX_TIMEOUT)  # Set timeout.
 
-            raw_data: str = client_socket.recv(self.BUFFER_SIZE).decode()
-            initial_connection_info: dict = json.loads(raw_data)
+            initial_connection_info: dict = receive_json(client_socket)
 
             agent_uuid = initial_connection_info.get("agent_id")
             if agent_uuid is None:
@@ -146,7 +144,7 @@ class Server:
                 logger.info(f"New agent stored to agent table in db {address[0]}:{address[1]}, agent ID: {agent_uuid}.")
 
             # Send back the agent_uid
-            client_socket.send(json.dumps(agent_uuid).encode())
+            send_json(client_socket, agent_uuid)
             db_engine_thread.commit()
 
             # Store agent socket
@@ -156,22 +154,22 @@ class Server:
             # Communication loop
             while self.is_running:
                 try:
-                    data_received = client_socket.recv(self.BUFFER_SIZE).decode()
-                    if not data_received:  # Agent disconnected.
+                    response = receive_json(client_socket)
+                    if response is None:
                         break
 
-                    response = json.loads(data_received)
                     if response.get("type") == "command_response":
                         self.pending_command_responses[response["command_id"]] = response
                         logging.info(f"Received command response from agent {agent_uuid}.")
+
                     elif response.get("type") == "heartbeat":  # Heartbeat from agent to keep the connection alive.
                         logging.info(f"Server heartbeat received from agent {agent_uuid}.")
                         pass
 
                 except socket.timeout:  # If didn't receive command or heartbeat, agent offline.
                     break
-
-                except Exception:
+                except Exception as e:
+                    logger.error(e)
                     break
 
         except Exception as e:
@@ -205,11 +203,15 @@ class Server:
                 "command_id": command_id,
                 "command": command,
             }
-            agent_socket.send(json.dumps(data).encode())  # Send command.
+
+            send_json(agent_socket, data)  # Send cmd.
             print(f"Sent command to agent {agent_uid}: {command}.")
 
-            while command_id not in self.pending_command_responses:  # Wait for the response to be received.
+            # Wait for the response to be received.
+            elapsed = 0
+            while command_id not in self.pending_command_responses and elapsed < 5:
                 time.sleep(0.05)
+                elapsed += 0.05
 
             response_data = self.pending_command_responses.pop(command_id)
             if response_data:
