@@ -23,7 +23,7 @@ class Server:
         self.port: int | None = None
         self.server_thread: threading.Thread | None = None
 
-        self.MAX_TIMEOUT: int = 65
+        self.MAX_TIMEOUT: int = 185  # Max timeout to wait for agent heartbeats.
         self.MAX_CONNECTIONS: int = 1
 
         self.connected_agents: dict[str, socket.socket] = {}
@@ -170,12 +170,12 @@ class Server:
 
                 except socket.timeout:  # If didn't receive command or heartbeat, agent offline.
                     break
-                except Exception as e:
-                    logger.error(f"Unexpected error in handle_client loop: {e}")
+
+                except Exception:
                     break
 
         except Exception as e:
-            logging.error(logging.ERROR, f"Error handling client {address[0]}:{address[1]}: {e}")
+            logger.error(f"Error handling client {address[0]}:{address[1]}: {e}")
         finally:
             if agent_uuid:
                 # Update agent status to offline in the database
@@ -208,8 +208,7 @@ class Server:
             agent_socket.send(json.dumps(data).encode())  # Send command.
             print(f"Sent command to agent {agent_uid}: {command}.")
 
-            elapsed = 0
-            while command_id not in self.pending_command_responses and elapsed < self.MAX_TIMEOUT:  # Wait for the response to be received.
+            while command_id not in self.pending_command_responses:  # Wait for the response to be received.
                 time.sleep(0.05)
 
             response_data = self.pending_command_responses.pop(command_id)
@@ -227,7 +226,7 @@ class Server:
                 "cwd": None,
             }
         except Exception as e:
-            print(f"Unexpected error in handle_client loop: {e}")
+            logger.error(f"Unexpected error in interect_with_agent loop: {e}")
 
     def _set_agent_offline(self, agent_uuid: str) -> None:
 

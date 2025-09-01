@@ -9,7 +9,7 @@ SERVER_HOST = sys.argv[1]
 SERVER_PORT = int(sys.argv[2])
 BUFFER_SIZE = 1024
 AGENT_ID_FILENAME = "uuid.txt"
-RECV_TIMEOUT = 60
+MAX_TIMEOUT = 180  # Send heartbeat interval
 RETRY_CONNECT_INTERVAL = 5
 
 def read_uuid() -> str | None:
@@ -48,10 +48,9 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
         while True:
             try:
                 message = s.recv(BUFFER_SIZE).decode()
-
-                if not message:  # Server disconnected.
-                    s.close()
+                if not message:
                     print("Server disconnected.")
+                    s.close()
                     main()
 
                 json_message = json.loads(message)
@@ -72,8 +71,9 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
                 s.send(json.dumps(message).encode())
                 print("Sent heartbeat")
 
-            except socket.error:
-                print("Connection closed.")
+            except Exception:
+                print("Server disconnected.")
+                s.close()
                 main()
 
 def connect_to_server(host: str, port: int) -> socket.socket:
@@ -84,12 +84,12 @@ def connect_to_server(host: str, port: int) -> socket.socket:
             print("Connection established")
             return s
         except socket.error:
-            print("Failed to connect to server, retrying.")
+            print(f"Failed to connect to server, retrying in {RETRY_CONNECT_INTERVAL} seconds.")
             time.sleep(RETRY_CONNECT_INTERVAL)
 
 def main() -> None:
     s = connect_to_server(SERVER_HOST, SERVER_PORT)
-    s.settimeout(RECV_TIMEOUT)
+    s.settimeout(MAX_TIMEOUT)
     communicate(s, get_system_info())
 
 if __name__ == '__main__':
