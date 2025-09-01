@@ -4,7 +4,7 @@ import time
 import uuid
 import os
 import logging
-from typing import Type, Any
+from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id, status
 from db.query import Insert, Select, Update
@@ -236,7 +236,7 @@ class Server:
                 "cwd": None,
             }
         except Exception as e:
-            logger.error(f"Unexpected error in interect_with_agent loop: {e}")
+            logger.error(f"Unexpected error in interact_with_agent loop: {e}")
 
     def _set_agent_offline(self, agent_uuid: str) -> None:
 
