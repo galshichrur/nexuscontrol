@@ -22,7 +22,8 @@ class Server:
         self.port: int | None = None
         self.server_thread: threading.Thread | None = None
 
-        self.MAX_TIMEOUT: int = 185  # Max timeout to wait for agent heartbeats.
+        self.HEARTBEAT_TIMEOUT: int = 185  # Max timeout to wait for agent heartbeats.
+        self.CMD_TIMEOUT: int = 25  # Max timeout to wait for cmd to execute on the agent system.
         self.MAX_CONNECTIONS: int = 1
 
         self.connected_agents: dict[str, socket.socket] = {}
@@ -98,7 +99,7 @@ class Server:
         agent_uuid = None
 
         try:
-            client_socket.settimeout(self.MAX_TIMEOUT)  # Set timeout.
+            client_socket.settimeout(self.HEARTBEAT_TIMEOUT)  # Set timeout.
 
             initial_connection_info: dict = receive_json(client_socket)
 
@@ -209,9 +210,16 @@ class Server:
 
             # Wait for the response to be received.
             elapsed = 0
-            while command_id not in self.pending_command_responses and elapsed < 5:
+            while command_id not in self.pending_command_responses and elapsed < self.CMD_TIMEOUT:
                 time.sleep(0.05)
                 elapsed += 0.05
+
+            if elapsed >= self.CMD_TIMEOUT:
+                return {
+                    "status": False,
+                    "command_response": "Error: command timed out.",
+                    "cwd": None,
+                }
 
             response_data = self.pending_command_responses.pop(command_id)
             if response_data:
