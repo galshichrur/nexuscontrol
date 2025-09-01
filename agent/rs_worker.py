@@ -28,46 +28,53 @@ def run_command(command: str) -> tuple[str, str]:
     return "helllo", "/"
 
 def communicate(s: socket.socket, initial_connection_info: dict) -> None:
-
-    # Read agent_id
-    agent_id = read_uuid()
-    if agent_id:
-        initial_connection_info["agent_id"] = agent_id
-
-    # Send system info
-    raw_data = json.dumps(initial_connection_info)
-    s.send(raw_data.encode())
-
-    # Receive
-    agent_uid = json.loads(s.recv(BUFFER_SIZE).decode().strip())
-
-    # Save to file received agent_id
-    with open(AGENT_ID_FILENAME, "w") as f:
-        f.write(agent_uid)
-
     while True:
-        try:
-            message = json.loads(s.recv(BUFFER_SIZE).decode())
+        # Read agent_id
+        agent_id = read_uuid()
+        if agent_id:
+            initial_connection_info["agent_id"] = agent_id
 
-            response_tuple = run_command(message["command"])
-            response = {
-                "type": "command_response",
-                "command_id": message["command_id"],
-                "command_response": response_tuple[0],
-                "cwd":  response_tuple[1],
-            }
-            s.send(json.dumps(response).encode())
+        # Send system info
+        raw_data = json.dumps(initial_connection_info)
+        s.send(raw_data.encode())
 
-        except socket.timeout:  # If socket timeout, send heartbeat
-            message = {
-                "type": "heartbeat",
-            }
-            s.send(json.dumps(message).encode())
-            print("Sent heartbeat")
+        # Receive
+        agent_uid = json.loads(s.recv(BUFFER_SIZE).decode().strip())
 
-        except socket.error:  # If connection is closed, retry connecting to server
-            print("Connection closed, retrying connection.")
-            main()
+        # Save to file received agent_id
+        with open(AGENT_ID_FILENAME, "w") as f:
+            f.write(agent_uid)
+
+        while True:
+            try:
+                message = s.recv(BUFFER_SIZE).decode()
+
+                if not message:  # Server disconnected.
+                    s.close()
+                    print("Connection closed.")
+                    main()
+
+                json_message = json.loads(message)
+
+                response_tuple = run_command(json_message["command"])
+                response = {
+                    "type": "command_response",
+                    "command_id": json_message["command_id"],
+                    "command_response": response_tuple[0],
+                    "cwd":  response_tuple[1],
+                }
+                s.send(json.dumps(response).encode())
+
+            except socket.timeout:  # If socket timeout, send heartbeat
+                message = {
+                    "type": "heartbeat",
+                }
+                s.send(json.dumps(message).encode())
+                print("Sent heartbeat")
+
+            except socket.error:  # If connection is closed, retry connecting to server
+                print("Connection closed, retrying connection.")
+                main()
 
 def connect_to_server(host: str, port: int) -> socket.socket:
     while True:
