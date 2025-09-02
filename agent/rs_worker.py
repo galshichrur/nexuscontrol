@@ -11,8 +11,8 @@ SERVER_HOST = sys.argv[1]
 SERVER_PORT = int(sys.argv[2])
 BUFFER_SIZE = 1024
 AGENT_ID_FILENAME = "uuid.txt"
-MAX_TIMEOUT = 180  # Send heartbeat interval
-RETRY_CONNECT_INTERVAL = 5
+MAX_TIMEOUT = 180  # Send heartbeat interval.
+RETRY_CONNECT_INTERVAL = 60  # Retry connection interval.
 
 def read_uuid() -> str | None:
 
