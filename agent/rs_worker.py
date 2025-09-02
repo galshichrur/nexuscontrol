@@ -52,7 +52,6 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
                     s.close()
                     main()
 
-                print(f"Received message: {message}")
                 response_tuple = run_command(message["command"])
                 response = {
                     "type": "command_response",
