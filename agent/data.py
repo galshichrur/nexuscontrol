@@ -2,10 +2,9 @@ import platform
 import requests
 import socket
 import os
-from getmac import get_mac_address
 import ctypes
 import getpass
-
+import uuid
 
 def is_admin():
     try:
@@ -15,6 +14,12 @@ def is_admin():
         # For Windows systems
         is_admin_status = (ctypes.windll.shell32.IsUserAnAdmin() != 0)
     return is_admin_status
+
+def get_mac_address():
+    mac = uuid.getnode()
+
+    # Format as XX:XX:XX:XX:XX:XX
+    return ':'.join(f'{(mac >> ele) & 0xff:02x}' for ele in range(40, -1, -8))
 
 def get_system_info() -> dict:
 
