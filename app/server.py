@@ -206,7 +206,6 @@ class Server:
             }
 
             send_json(agent_socket, data)  # Send cmd.
-            print(f"Sent command to agent {agent_uid}: {command}.")
 
             # Wait for the response to be received.
             elapsed = 0

@@ -185,7 +185,6 @@ async def get_agent(agent_id: str) -> AgentData:
 async def agent_interaction(agent_id: str, command: str) -> AgentResponse:
     try:
         response: dict = server.interact_with_agent(agent_id, command)
-        print(response)
         return AgentResponse(status=response["status"], command_response=response["command_response"], cwd=response["cwd"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
