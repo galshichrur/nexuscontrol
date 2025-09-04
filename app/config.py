@@ -1,30 +1,32 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv("../.env")
 
 class Config:
 
     # Database
-    DB_PATH = "db/nexuscontrol.db"
+    DB_PATH = os.getenv("DB_PATH")
     
     # TCP Server
-    HOST = "0.0.0.0"
-    PORT = 8080
+    HOST = os.getenv("SERVER_HOST")
+    PORT = int(os.getenv("SERVER_PORT"))
     
     # Frontend
-    FRONTEND_BUILD_PATH = "../frontend/out"
-    
-    # CORS
-    ALLOWED_ORIGINS = [
-        "http://127.0.0.1:3000",
-    ]
-    
+    FRONTEND_BUILD_PATH = os.getenv("FRONTEND_BUILD_PATH")
+
     # API
-    API_PREFIX = "/api"
-    API_TITLE = "Nexus Control API"
-    API_VERSION = "0.1.0"
+    API_PREFIX = os.getenv("API_PREFIX")
+    API_TITLE = os.getenv("API_TITLE")
+    API_VERSION = os.getenv("API_VERSION")
+
+    # CORS
+    ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
 
     # Logs
-    LOGS_PATH = "logs"
+    LOGS_PATH = os.getenv("LOGS_PATH")
 
-    # Server Configuration
-    SERVER_RECV_HEARTBEAT_TIMEOUT = 105
-    CMD_EXECUTE_TIMEOUT = 25
-    MAX_CONNECTIONS = 1
+    # Server
+    SERVER_RECV_HEARTBEAT_TIMEOUT = int(os.getenv("SERVER_RECV_HEARTBEAT_TIMEOUT"))
+    CMD_EXECUTE_TIMEOUT = int(os.getenv("CMD_EXECUTE_TIMEOUT"))
+    MAX_CONNECTIONS = int(os.getenv("MAX_CONNECTIONS"))
