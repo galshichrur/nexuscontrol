@@ -180,7 +180,6 @@ async def get_agent(agent_id: str) -> AgentData:
 
     raise HTTPException(status_code=404, detail="Agent not found")
 
-
 @app.post("/agents/interaction", response_model=AgentResponse)
 async def agent_interaction(agent_id: str, command: str) -> AgentResponse:
     try:
@@ -188,7 +187,6 @@ async def agent_interaction(agent_id: str, command: str) -> AgentResponse:
         return AgentResponse(status=response["status"], command_response=response["command_response"], cwd=response["cwd"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.post("/agents/{agent_id}")
 async def update_agent_name(agent_id: str, name: str):

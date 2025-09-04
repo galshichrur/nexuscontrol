@@ -4,6 +4,7 @@ import time
 import uuid
 import os
 import logging
+from config import Config
 from typing import Type
 from db.engine import Engine
 from db.models import agents_table, agent_id, status
@@ -13,18 +14,17 @@ from helper import send_json, receive_json
 
 
 class Server:
-    def __init__(self, db_engine_class: Type[Engine], buffer_size: int = 1024) -> None:
+    def __init__(self, db_engine_class: Type[Engine]) -> None:
         self.db_engine_class: Type[Engine] = db_engine_class
-        self.BUFFER_SIZE: int = buffer_size
         self.socket: socket.socket | None = None
         self.is_running: bool = False
         self.host: str | None = None
         self.port: int | None = None
         self.server_thread: threading.Thread | None = None
 
-        self.HEARTBEAT_TIMEOUT: int = 185  # Max timeout to wait for agent heartbeats.
-        self.CMD_TIMEOUT: int = 25  # Max timeout to wait for cmd to execute on the agent system.
-        self.MAX_CONNECTIONS: int = 1
+        self.HEARTBEAT_TIMEOUT: int = Config.SERVER_RECV_HEARTBEAT_TIMEOUT  # Max timeout to wait for agent heartbeats.
+        self.CMD_TIMEOUT: int = Config.CMD_EXECUTE_TIMEOUT  # Max timeout to wait for cmd to execute on the agent system.
+        self.MAX_CONNECTIONS: int = Config.MAX_CONNECTIONS
 
         self.connected_agents: dict[str, socket.socket] = {}
         self.pending_command_responses: dict[str, dict] = {}

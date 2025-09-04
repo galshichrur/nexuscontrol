@@ -2,7 +2,7 @@
 class Config:
 
     # Database
-    DB_PATH = "db/nexus_control.db"
+    DB_PATH = "db/nexuscontrol.db"
     
     # TCP Server
     HOST = "0.0.0.0"
@@ -23,3 +23,8 @@ class Config:
 
     # Logs
     LOGS_PATH = "logs"
+
+    # Server Configuration
+    SERVER_RECV_HEARTBEAT_TIMEOUT = 105
+    CMD_EXECUTE_TIMEOUT = 25
+    MAX_CONNECTIONS = 1
