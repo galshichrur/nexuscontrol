@@ -1,5 +1,4 @@
 import os
-import sys
 import socket
 import time
 from dotenv import load_dotenv
@@ -8,14 +7,10 @@ from shell import run_command
 from helper import send_json, receive_json
 from persistence import setup_persistence
 
-load_dotenv("../.env")
+load_dotenv("../../.env")
 
-if len(sys.argv) < 2:
-    SERVER_HOST = os.getenv("SERVER_HOST")
-    SERVER_PORT = int(os.getenv("SERVER_PORT"))
-else:
-    SERVER_HOST = sys.argv[1]
-    SERVER_PORT = int(sys.argv[2])
+SERVER_HOST = os.getenv("SERVER_HOST")
+SERVER_PORT = int(os.getenv("SERVER_PORT"))
 
 MAX_TIMEOUT = int(os.getenv("AGENT_SEND_HEARTBEAT_INTERVAL"))  # Send heartbeat interval.
 RETRY_CONNECT_INTERVAL = int(os.getenv("AGENT_RETRY_CONNECTION_INTERVAL"))  # Retry connection interval.
