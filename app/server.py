@@ -63,6 +63,7 @@ class Server:
                     agent_socket.close()
 
                 self.connected_agents = {}
+                self._set_all_agents_offline()
                 self.socket.close()
                 self.socket = None
                 self.is_running = False
@@ -243,6 +244,16 @@ class Server:
         db_engine_thread.open(os.getenv("DB_PATH"))
 
         update_query = Update(agents_table).set({status: False}).where(agent_id == agent_uuid)
+        db_engine_thread.execute(update_query)
+
+        db_engine_thread.commit()
+
+    def _set_all_agents_offline(self) -> None:
+
+        db_engine_thread = self.db_engine_class()
+        db_engine_thread.open(os.getenv("DB_PATH"))
+
+        update_query = Update(agents_table).set({status: False})
         db_engine_thread.execute(update_query)
 
         db_engine_thread.commit()
