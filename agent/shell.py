@@ -8,9 +8,3 @@ def run_command(cmd: str) -> tuple[str, str]:
     if result.stderr:
         return f"Error: {result.stderr}", cwd
     return result.stdout.strip(), cwd
-
-def run_python_command(cmd: str) -> str:
-    pass
-
-def run_wsl_command(cmd: str) -> tuple[str, str]:
-    pass
