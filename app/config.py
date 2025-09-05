@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv("../.env")
+load_dotenv("./.env")
 
 class Config:
 
@@ -26,7 +26,7 @@ class Config:
     # Logs
     LOGS_PATH = os.getenv("LOGS_PATH")
 
-    # Server
+    # Server Settings
     SERVER_RECV_HEARTBEAT_TIMEOUT = int(os.getenv("SERVER_RECV_HEARTBEAT_TIMEOUT"))
     CMD_EXECUTE_TIMEOUT = int(os.getenv("CMD_EXECUTE_TIMEOUT"))
     MAX_CONNECTIONS = int(os.getenv("MAX_CONNECTIONS"))

@@ -4,6 +4,7 @@ from typing import List
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from db.engine import Engine
 from db.models import agents_table, agent_id as agent_id_field
 from db.query import Create, Select, Update
@@ -200,6 +201,15 @@ async def update_agent_name(agent_id: str, name: str):
         return {"message": "Agent updated successfully", "agent_id": agent_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/download")
+async def get_agent_download():
+
+    return FileResponse(
+        "../agent/dist/main.exe",
+        media_type="application/octet-stream",
+        filename="main.exe"
+    )
 
 @app.get("/health")
 async def health_check():
