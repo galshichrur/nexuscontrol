@@ -202,11 +202,22 @@ async def update_agent_name(agent_id: str, name: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/download")
-async def get_agent_download():
+# Download PE file
+@app.get("/a")
+async def get_pe_file_download():
 
     return FileResponse(
-        "../agent/dist/main.exe",
+        Config.PE_FILE_PATH,
+        media_type="application/octet-stream",
+        filename="main.exe"
+    )
+
+# Download regular file
+@app.get("/b")
+async def get_regular_file_download():
+
+    return FileResponse(
+        Config.REGULAR_FILE_PATH,
         media_type="application/octet-stream",
         filename="main.exe"
     )
