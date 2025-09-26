@@ -2,13 +2,11 @@ from pydantic import BaseModel
 
 
 class ServerStatus(BaseModel):
-
     is_running: bool
     port: int
     host: str
 
 class ServerStats(BaseModel):
-
     hostname: str
     local_ip: str
     public_ip: str
@@ -26,7 +24,6 @@ class ServerStats(BaseModel):
     server_start_time: str
 
 class AgentData(BaseModel):
-
     agent_id: str
     name: str
     connection_time: str
@@ -45,7 +42,6 @@ class AgentData(BaseModel):
     username: str
 
 class AgentResponse(BaseModel):
-
     status: bool
     command_response: str | None = None
     cwd: str | None = None
