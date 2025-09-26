@@ -1,3 +1,4 @@
+import state
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -12,27 +13,27 @@ from api.endpoints import router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_app: FastAPI):
     # Init DB
-    engine = Engine()
-    engine.open(Config.DB_PATH)
+    state.db_engine = Engine()
+    state.db_engine.open(Config.DB_PATH)
     create = Create(agents_table, exists_ok=True)
-    engine.execute(create)
-    engine.commit()
+    state.db_engine.execute(create)
+    state.db_engine.commit()
     logger.info("Database initialized.")
 
     # Start server
-    server = Server(Engine)
-    server.start(Config.HOST, Config.PORT)
+    state.server = Server(Engine)
+    state.server.start(Config.HOST, Config.PORT)
 
     yield
 
     # Stop server
-    server.stop()
+    state.server.stop()
 
     # Close DB
-    engine.commit()
-    engine.close()
+    state.db_engine.commit()
+    state.db_engine.close()
     logger.info("Server successfully stopped.")
 
 app = FastAPI(

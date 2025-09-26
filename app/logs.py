@@ -4,8 +4,8 @@ import json
 from typing import List
 from config import Config
 
-LOG_FILE_PATH = Config.LOGS_PATH
 
+LOG_FILE_PATH = Config.LOGS_PATH
 
 class FileLogHandler(logging.Handler):
     def emit(self, record):
