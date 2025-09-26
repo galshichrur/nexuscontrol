@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from db.engine import Engine
 from db.models import agents_table
 from db.query import Create
-from server.server import Server
+from communication.server import Server
 from config import Config
 from logs import logger
 from api.endpoints import router

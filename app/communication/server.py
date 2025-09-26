@@ -10,7 +10,7 @@ from db.engine import Engine
 from db.models import agents_table, agent_id, status
 from db.query import Insert, Select, Update
 from logs import logger
-from helper import send_json, receive_json
+from communication.helper import send_json, receive_json
 
 
 class Server:

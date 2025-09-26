@@ -1,6 +1,7 @@
 import socket
 import json
 
+
 BUFFER = 2048
 
 def send_json(s: socket.socket, data: dict) -> None:
