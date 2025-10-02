@@ -4,6 +4,8 @@ import time
 import uuid
 import os
 import logging
+import base64
+from communication.crypto import Crypto
 from config import Config
 from typing import Type
 from db.engine import Engine
@@ -94,7 +96,17 @@ class Server:
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
 
-        logger.info(f"Stated handling new connection: {address[0]}:{address[1]}.")
+        # Receive agent-public-key message.
+        agent_public_key = base64.b64decode(receive_json(client_socket).get("agent-public-key"))
+        if agent_public_key is None:
+            raise Exception(f"Agent public key not found.")
+
+        shared_key, server_public_key = Crypto.handshake(agent_public_key)
+
+        # Send server-public-key message.
+        message = {"server-public-key": base64.b64encode(server_public_key).decode()}
+        send_json(client_socket, message)
+
         db_engine_thread = self.db_engine_class()
         db_engine_thread.open(os.getenv("DB_PATH"))
         agent_uuid = None
