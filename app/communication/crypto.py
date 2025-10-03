@@ -62,9 +62,9 @@ class Crypto:
         """
 
         ct, nonce = Crypto.encrypt(key, data)
-        msg_len = len(nonce + ct)
-        packet = msg_len.to_bytes(4, 'big') + ct + nonce
-        s.send(packet)
+        packet = nonce + ct
+        msg_len = len(packet).to_bytes(4, "big")
+        s.sendall(msg_len + packet)
 
     @staticmethod
     def receive_secure(s: socket.socket, key: bytes) -> bytes:
@@ -73,7 +73,7 @@ class Crypto:
         Returns received plaintext in bytes.
         """
 
-        msg_len = int(s.recv(4).decode())
+        msg_len = int.from_bytes(s.recv(4), "big")
         packet = s.recv(msg_len)
         nonce = packet[:12]
         ct = packet[12:]
