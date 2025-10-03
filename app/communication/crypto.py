@@ -1,4 +1,5 @@
 import os
+import socket
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -6,6 +7,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 
 
 class Crypto:
+
+    KEY_LENGTH = 32
+
     @staticmethod
     def handshake(agent_public_key: bytes) -> tuple[bytes, bytes]:
         """
@@ -23,7 +27,7 @@ class Crypto:
         # Perform key derivation.
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
-            length=32,
+            length=Crypto.KEY_LENGTH,
             salt=None,
             info=b'handshake data',
         ).derive(shared_key)
@@ -49,4 +53,29 @@ class Crypto:
 
         aes = AESGCM(key)
         pt = aes.decrypt(nonce, data, None)
+        return pt
+
+    @staticmethod
+    def send_secure(s: socket.socket, key: bytes, data: bytes) -> None:
+        """
+        Sends a secure message to the agent using shared key with AES-GCM.
+        """
+
+        ct, nonce = Crypto.encrypt(key, data)
+        msg_len = len(nonce + ct)
+        packet = msg_len.to_bytes(4, 'big') + ct + nonce
+        s.send(packet)
+
+    @staticmethod
+    def receive_secure(s: socket.socket, key: bytes) -> bytes:
+        """
+        Receives a secure message from agent using shared key with AES-GCM.
+        Returns received plaintext in bytes.
+        """
+
+        msg_len = int(s.recv(4).decode())
+        packet = s.recv(msg_len)
+        nonce = packet[:12]
+        ct = packet[12:]
+        pt = Crypto.decrypt(key, ct, nonce)
         return pt
