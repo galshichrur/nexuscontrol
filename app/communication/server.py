@@ -95,15 +95,17 @@ class Server:
 
     def handle_client(self, client_socket: socket.socket, address: tuple[str, int]):
 
-        # Receive agent-public-key message.
-        agent_public_key = client_socket.recv(Crypto.KEY_LENGTH)
-        if agent_public_key is None:
-            raise Exception(f"Agent public key not found.")
+        try:
+            # Receive agent-public-key message.
+            agent_public_key = client_socket.recv(Crypto.KEY_LENGTH)
+            shared_key, server_public_key = Crypto.handshake(agent_public_key)
 
-        shared_key, server_public_key = Crypto.handshake(agent_public_key)
-
-        # Send server-public-key message.
-        client_socket.send(server_public_key)
+            # Send server-public-key message.
+            client_socket.send(server_public_key)
+        except Exception as e:
+            logger.error(f"Error receiving agent public key: {e}")
+            client_socket.close()
+            return
 
         db_engine_thread = self.db_engine_class()
         db_engine_thread.open(os.getenv("DB_PATH"))
