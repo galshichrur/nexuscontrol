@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 
+
 FOLDER_NAME = "MicrosoftEdge"
 EXE_FILE_NAME = "MicrosoftEdgeLauncher.exe"
 UUID_FILE_NAME = "uuid.txt"
