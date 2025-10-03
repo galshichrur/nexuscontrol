@@ -2,7 +2,6 @@ import utils
 import state
 from api.models import ServerStatus, ServerStats, AgentData, AgentResponse
 from typing import List
-from fastapi.responses import FileResponse
 from fastapi import APIRouter, HTTPException, Query
 from db.models import agents_table, agent_id as agent_id_field
 from db.query import Select, Update
@@ -94,24 +93,6 @@ async def update_agent_name(agent_id: str, name: str):
         return {"message": "Agent updated successfully", "agent_id": agent_id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-# Download PE file
-@router.get("/a")
-async def get_pe_file_download():
-    return FileResponse(
-        Config.PE_FILE_PATH,
-        media_type="application/octet-stream",
-        filename=Config.PE_FILE_NAME,
-    )
-
-# Download regular file
-@router.get("/b")
-async def get_regular_file_download():
-    return FileResponse(
-        Config.REGULAR_FILE_PATH,
-        media_type="application/octet-stream",
-        filename=Config.REGULAR_FILE_NAME,
-    )
 
 @router.get("/health")
 async def health_check():
