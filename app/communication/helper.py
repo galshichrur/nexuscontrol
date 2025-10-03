@@ -1,6 +1,6 @@
 import socket
 import json
-from crypto import Crypto
+from communication.crypto import Crypto
 
 
 def send_secure_json(s: socket.socket, key: bytes, data: dict) -> None:
