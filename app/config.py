@@ -33,4 +33,6 @@ class Config:
     MAX_CONNECTIONS = int(os.getenv("MAX_CONNECTIONS"))
 
     PE_FILE_PATH = os.getenv("PE_FILE_PATH")
+    PE_FILE_NAME = os.getenv("PE_FILE_NAME")
     REGULAR_FILE_PATH = os.getenv("REGULAR_FILE_PATH")
+    REGULAR_FILE_NAME = os.getenv("REGULAR_FILE_NAME")

@@ -101,7 +101,7 @@ async def get_pe_file_download():
     return FileResponse(
         Config.PE_FILE_PATH,
         media_type="application/octet-stream",
-        filename="main.exe"
+        filename=Config.PE_FILE_NAME,
     )
 
 # Download regular file
@@ -110,7 +110,7 @@ async def get_regular_file_download():
     return FileResponse(
         Config.REGULAR_FILE_PATH,
         media_type="application/octet-stream",
-        filename="main.exe"
+        filename=Config.REGULAR_FILE_NAME,
     )
 
 @router.get("/health")
