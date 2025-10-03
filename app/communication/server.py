@@ -11,7 +11,7 @@ from db.engine import Engine
 from db.models import agents_table, agent_id, status
 from db.query import Insert, Select, Update
 from logs import logger
-from communication.helper import send_json, receive_json
+from communication.helper import send_secure_json, receive_secure_json
 
 
 class Server:
@@ -27,7 +27,7 @@ class Server:
         self.CMD_TIMEOUT: int = Config.CMD_EXECUTE_TIMEOUT  # Max timeout to wait for cmd to execute on the agent system.
         self.MAX_CONNECTIONS: int = Config.MAX_CONNECTIONS
 
-        self.connected_agents: dict[str, socket.socket] = {}
+        self.connected_agents: dict[str, tuple[socket.socket, bytes]] = {}
         self.pending_agent_responses: dict[str, dict] = {}
 
     def start(self, host: str = "0.0.0.0", port: int = 8080) -> None:
@@ -60,7 +60,7 @@ class Server:
 
         if self.socket:
             try:
-                for agent_socket in self.connected_agents.values():
+                for agent_socket, _ in self.connected_agents.values():
                     agent_socket.close()
 
                 self.connected_agents = {}
@@ -112,7 +112,7 @@ class Server:
         try:
             client_socket.settimeout(self.HEARTBEAT_TIMEOUT)  # Set timeout.
 
-            agent_hello: dict = receive_json(client_socket)
+            agent_hello: dict = receive_secure_json(client_socket, shared_key)
             if agent_hello.get("type") != "agent-hello":
                 raise Exception("Received invalid message type.")
 
@@ -162,17 +162,17 @@ class Server:
                 "type": "server-hello",
                 "agent_id": agent_uuid
             }
-            send_json(client_socket, server_hello)
+            send_secure_json(client_socket, shared_key, server_hello)
             db_engine_thread.commit()
 
-            # Store agent socket
-            self.connected_agents[agent_uuid] = client_socket
+            # Store agent socket and shared key
+            self.connected_agents[agent_uuid] = client_socket, shared_key
             logger.info(f"Agent {agent_uuid} is connected and online.")
 
             # Communication loop
             while self.is_running:
                 try:
-                    response = receive_json(client_socket)
+                    response = receive_secure_json(client_socket, shared_key)
                     if response is None:
                         break
 
@@ -209,7 +209,7 @@ class Server:
 
         try:
             request_id = str(uuid.uuid4())
-            agent_socket = self.connected_agents[agent_uid]
+            agent_socket = self.connected_agents[agent_uid][0]
             if not agent_socket:
                 self._set_agent_offline(agent_uid)
                 return {
@@ -222,7 +222,7 @@ class Server:
                 "request_id": request_id,
                 "command": command,
             }
-            send_json(agent_socket, data)
+            send_secure_json(agent_socket, self.connected_agents[agent_uid][1], data)
 
             # Wait for the response to be received.
             elapsed = 0
