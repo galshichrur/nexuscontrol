@@ -39,7 +39,7 @@ class Server:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((host, port))
-        self.socket.listen(self.MAX_CONNECTIONS)
+        self.socket.listen()
 
         self.is_running = True
         self.host = host

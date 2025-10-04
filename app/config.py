@@ -31,7 +31,6 @@ class Config:
     # Server Settings
     SERVER_RECV_HEARTBEAT_TIMEOUT = int(os.getenv("SERVER_RECV_HEARTBEAT_TIMEOUT"))
     CMD_EXECUTE_TIMEOUT = int(os.getenv("CMD_EXECUTE_TIMEOUT"))
-    MAX_CONNECTIONS = int(os.getenv("MAX_CONNECTIONS"))
 
     PE_FILE_PATH = os.getenv("PE_FILE_PATH")
     PE_FILE_NAME = os.getenv("PE_FILE_NAME")
