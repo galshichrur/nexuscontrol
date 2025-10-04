@@ -48,6 +48,8 @@ class Crypto:
 
         msg_len = int.from_bytes(s.recv(4), "big")
         packet = s.recv(msg_len)
+        if not packet:
+            raise ConnectionResetError("Socket closed.")
         nonce = packet[:12]
         ct = packet[12:]
         pt = Crypto.decrypt(key, ct, nonce)
