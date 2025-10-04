@@ -33,7 +33,6 @@ async def get_server_stats():
         network_download_kbps=utils.network_download_kbps,
         network_upload_kbps=utils.network_upload_kbps,
 
-        max_connections=state.server.MAX_CONNECTIONS,
         encryption=True,
         os_name=utils.os_name,
         os_version=utils.os_version,

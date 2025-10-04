@@ -25,7 +25,6 @@ class Server:
 
         self.HEARTBEAT_TIMEOUT: int = Config.SERVER_RECV_HEARTBEAT_TIMEOUT  # Max timeout to wait for agent heartbeats.
         self.CMD_TIMEOUT: int = Config.CMD_EXECUTE_TIMEOUT  # Max timeout to wait for cmd to execute on the agent system.
-        self.MAX_CONNECTIONS: int = Config.MAX_CONNECTIONS
 
         self.connected_agents: dict[str, tuple[socket.socket, bytes]] = {}
         self.pending_agent_responses: dict[str, dict] = {}
