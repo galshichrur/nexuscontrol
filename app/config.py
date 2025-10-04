@@ -20,6 +20,7 @@ class Config:
     API_PREFIX = os.getenv("API_PREFIX")
     API_TITLE = os.getenv("API_TITLE")
     API_VERSION = os.getenv("API_VERSION")
+    API_PORT = os.getenv("API_PORT")
 
     # CORS
     ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
