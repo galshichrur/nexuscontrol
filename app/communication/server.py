@@ -175,8 +175,6 @@ class Server:
             while self.is_running:
                 try:
                     response = receive_secure_json(client_socket, shared_key)
-                    if response is None:
-                        break
 
                     if response.get("type") == "response":
                         self.pending_agent_responses[response["response_id"]] = response
@@ -186,10 +184,10 @@ class Server:
                         logging.info(f"Server heartbeat received from agent {agent_uuid}.")
                         pass
 
-                except socket.timeout:  # If didn't receive command or heartbeat, agent offline.
+                except socket.timeout:  # Didn't receive any command or heartbeat.
                     break
-                except Exception as e:
-                    logger.error(e)
+                # Agent disconnected.
+                except ConnectionResetError or ConnectionError or ConnectionAbortedError or ConnectionRefusedError:
                     break
 
         except Exception as e:
