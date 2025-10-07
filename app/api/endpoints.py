@@ -1,4 +1,3 @@
-import utils
 import state
 from api.models import ServerStatus, ServerStats, AgentData, AgentResponse
 from typing import List
@@ -7,6 +6,7 @@ from db.models import agents_table, agent_id as agent_id_field
 from db.query import Select, Update
 from logs import load_logs, logger
 from config import Config
+from utils import system_stats
 
 
 router = APIRouter()
@@ -21,24 +21,22 @@ async def get_server_status():
 
 @router.get("/server/stats", response_model=ServerStats)
 async def get_server_stats():
-    utils.update()
     return ServerStats(
-        hostname=utils.hostname,
-        local_ip=utils.local_ip,
-        public_ip=utils.public_ip,
-        mac_address=utils.mac_address,
+        hostname=system_stats.hostname,
+        local_ip=system_stats.local_ip,
+        public_ip=system_stats.public_ip,
+        mac_address=system_stats.mac_address,
 
-        cpu_usage=utils.cpu_usage,
-        memory_usage=utils.memory_usage,
-        network_download_kbps=utils.network_download_kbps,
-        network_upload_kbps=utils.network_upload_kbps,
+        cpu_usage=system_stats.cpu_usage,
+        memory_usage=system_stats.memory_usage,
+        network_download_kbps=system_stats.network_download_kbps,
+        network_upload_kbps=system_stats.network_upload_kbps,
 
-        encryption=True,
-        os_name=utils.os_name,
-        os_version=utils.os_version,
-        os_architecture=utils.os_architecture,
-        server_time=utils.server_time,
-        server_start_time=utils.server_start_time,
+        os_name=system_stats.os_name,
+        os_version=system_stats.os_version,
+        os_architecture=system_stats.os_architecture,
+        server_time=system_stats.server_time,
+        server_start_time=system_stats.server_start_time,
     )
 
 @router.post("/server/control")

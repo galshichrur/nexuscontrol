@@ -15,7 +15,6 @@ class ServerStats(BaseModel):
     memory_usage: float
     network_download_kbps: float
     network_upload_kbps: float
-    encryption: bool
     os_name: str
     os_version: str
     os_architecture: str
