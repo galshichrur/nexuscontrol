@@ -1,5 +1,5 @@
-
 # NexusControl
+[View Documentation in Hebrew (PDF)](NexusControl.pdf)
 
 NexusControl is Remote Command & Control (C2) system developed in Python, designed for Red Team and penetration testing.  
 It provides a secure way to manage and monitor remote machines (agents) through an encrypted TCP connection, controlled entirely from a local management server with a web interface.
