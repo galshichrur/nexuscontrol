@@ -43,12 +43,21 @@ In Linux:
 ```bash
 source .venv/bin/activate
 ```
+
+Install requirements.txt
+```bash
 pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment
 Edit the .env file in /app to set your TCP server and API configuration.
-```bash
+
+In Windows:
+```
+move .global.env .env
+```
+In Linux:
+```
 mv .global.env .env
 ```
 
