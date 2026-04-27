@@ -47,7 +47,7 @@ import { ServerDashboard } from "@/components/server-dashboard"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-const API_BASE_URL = "http://127.0.0.1:8000"
+const API_BASE_URL = ""
 
 const SERVER_STATS_INTERVAL = 30000 // 30 seconds
 const LOGS_INTERVAL = 20000 // 20 seconds
