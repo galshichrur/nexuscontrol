@@ -6,6 +6,7 @@ load_dotenv("./.env")
 
 class Config:
 
+    API_HOST = os.getenv("API_HOST")
     # Database
     DB_PATH = os.getenv("DB_PATH")
     
