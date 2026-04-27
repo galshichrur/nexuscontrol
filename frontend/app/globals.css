@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 10%;
+    --foreground: 210 40% 98%;
+    --card: 220 25% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 25% 15%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 220 20% 10%;
+    --secondary: 217 33% 25%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 75%;
+    --accent: 199 70% 40%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 25%;
+    --input: 217 33% 25%;
+    --ring: 142 70% 45%;
+    --radius: 0.5rem;
+
+    /* Sidebar specific colors */
+    --sidebar-background: 220 30% 12%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 220 20% 10%;
+    --sidebar-accent: 217 33% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 25%;
+    --sidebar-ring: 142 70% 45%;
+
+    /* Chart colors */
+    --chart-1: 142 70% 45%;
+    --chart-2: 199 70% 40%;
+    --chart-3: 316 70% 50%;
+    --chart-4: 39 100% 50%;
+    --chart-5: 0 84% 60%;
+
+    /* Terminal colors */
+    --terminal-background: 0 0% 5%;
+    --terminal-text: 142 70% 45%;
+    --terminal-prompt: 142 70% 60%;
+    --terminal-success: 142 70% 45%;
+    --terminal-error: 0 84% 60%;
+    --terminal-warning: 39 100% 50%;
+    --terminal-info: 199 70% 40%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 210 40% 98%;
+    --card: 220 25% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 25% 15%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 220 20% 10%;
+    --secondary: 217 33% 25%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 20%;
+    --muted-foreground: 215 20% 75%;
+    --accent: 199 70% 40%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 25%;
+    --input: 217 33% 25%;
+    --ring: 142 70% 45%;
+
+    /* Sidebar specific colors for dark mode */
+    --sidebar-background: 220 30% 12%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 220 20% 10%;
+    --sidebar-accent: 217 33% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 25%;
+    --sidebar-ring: 142 70% 45%;
+
+    /* Terminal colors */
+    --terminal-background: 0 0% 5%;
+    --terminal-text: 142 70% 45%;
+    --terminal-prompt: 142 70% 60%;
+    --terminal-success: 142 70% 45%;
+    --terminal-error: 0 84% 60%;
+    --terminal-warning: 39 100% 50%;
+    --terminal-info: 199 70% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Terminal styles */
+.terminal {
+  line-height: 1.5;
+  @apply font-mono text-sm bg-black text-primary rounded-md p-4 overflow-auto;
+}
+
+.terminal-prompt {
+  @apply text-primary;
+}
+
+.terminal-success {
+  @apply text-primary;
+}
+
+.terminal-error {
+  @apply text-destructive;
+}
+
+.terminal-warning {
+  @apply text-yellow-500;
+}
+
+.terminal-info {
+  @apply text-accent;
+}
+
+.terminal-input {
+  @apply bg-black text-primary border-primary/50 focus-visible:ring-primary;
+}
+
+/* Modern UI enhancements */
+.card-hover-effect {
+  @apply transition-all duration-200 hover:shadow-md hover:border-primary/30;
+}
+
+.status-indicator {
+  @apply relative flex h-2 w-2 rounded-full;
+}
+
+.status-indicator::after {
+  content: "";
+  @apply absolute inset-0 rounded-full animate-ping opacity-75;
+}
+
+.status-indicator.online {
+  @apply bg-green-500;
+}
+
+.status-indicator.online::after {
+  @apply bg-green-500;
+}
+
+.status-indicator.offline {
+  @apply bg-red-500;
+}
+
+.status-indicator.connecting {
+  @apply bg-yellow-500;
+}
+
+.status-indicator.connecting::after {
+  @apply bg-yellow-500;
+}
