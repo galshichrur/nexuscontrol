@@ -54,11 +54,11 @@ Edit the .env file in /app to set your TCP server and API configuration.
 
 In Windows:
 ```
-move .global.env .env
+move .env.global .env
 ```
 In Linux:
 ```
-mv .global.env .env
+mv .env.global .env
 ```
 
 ## Running the Project
