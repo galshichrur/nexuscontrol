@@ -34,7 +34,15 @@ npm run build
 ```bash
 cd ../app
 python -m venv .venv
+```
+In Windows:
+```bash
 .venv\Scripts\activate
+```
+In Linux:
+```bash
+source .venv/bin/activate
+```
 pip install -r requirements.txt
 ```
 
